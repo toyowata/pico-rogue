@@ -1,6 +1,5 @@
 *.o
 Makefile
-config.h
 config.log
 config.status
 rogue
@@ -10,3 +9,5 @@ rogue.doc
 rogue.html
 rogue.me
 rogue.scr
+build/
+.DS_Store

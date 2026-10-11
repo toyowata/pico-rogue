@@ -15,6 +15,12 @@
 #include <curses.h>
 #include "rogue.h"
 
+#ifdef PICO_BUILD
+#include "pico/stdlib.h"
+#include "hardware/watchdog.h"
+#include "hardware/sync.h"
+#endif
+
 /*
  * main:
  *	The main program, of course
@@ -24,6 +30,14 @@ main(int argc, char **argv, char **envp)
 {
     char *env;
     int lowtime;
+
+#ifdef PICO_BUILD
+    static char *dummy_argv[] = { "rogue", NULL };
+    if (argc < 1 || argv == NULL) {
+        argc = 1;
+        argv = dummy_argv;
+    }
+#endif
 
     md_init();
 
@@ -390,5 +404,15 @@ void
 my_exit(int st)
 {
     resetltchars();
+#ifdef PICO_BUILD
+    printf("\r\n\r\n=== Game Over ===\r\nPress [SPACE] to restart...\r\n");
+    fflush(stdout);
+    while (getch() != ' ') {
+        sleep_ms(50);
+    }
+    watchdog_reboot(0, 0, 0);
+    while (1) tight_loop_contents();
+#else
     exit(st);
+#endif
 }

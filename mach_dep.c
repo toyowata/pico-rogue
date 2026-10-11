@@ -214,7 +214,7 @@ start_score()
 bool 	 	 
 is_symlink(char *sp) 	 	 
 { 	 	 
-#ifdef S_IFLNK 	 	 
+#if defined(S_IFLNK) && !defined(PICO_BUILD) 	 	 
     struct stat sbuf2; 	 	 
  	 	 
     if (lstat(sp, &sbuf2) < 0) 	 	 
