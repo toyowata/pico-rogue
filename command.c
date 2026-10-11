@@ -89,7 +89,7 @@ command()
 	    if (--no_command == 0)
 	    {
 		player.t_flags |= ISRUN;
-		msg("you can move again");
+		msg("再び動けるようになった！");
 	    }
 	}
 	else
@@ -170,11 +170,9 @@ over:
 		    }
 		    else {
 			if (!terse)
-			    addmsg("there is ");
-			addmsg("nothing here");
-                        if (!terse)
-                            addmsg(" to pick up");
-                        endmsg();
+			    msg("ここには拾える物はありません。");
+			else
+			    msg("何もない。");
 		    }
 		}
 		when '!': shell();
@@ -226,8 +224,9 @@ over:
 			|| ((!see_monst(mp)) && !on(player, SEEMONST)))
 		    {
 			if (!terse)
-			    addmsg("I see ");
-			msg("no monster there");
+			    msg("そこにはモンスターはいません。");
+			else
+			    msg("モンスターがいない。");
 			after = FALSE;
 		    }
 		    else if (diag_ok(&hero, &delta))
@@ -246,7 +245,7 @@ over:
 		when 'a':
 		    if (last_comm == '\0')
 		    {
-			msg("you haven't typed a command yet");
+			msg("まだコマンドを入力していません");
 			after = FALSE;
 		    }
 		    else
@@ -291,7 +290,7 @@ over:
 		    wrefresh(curscr);
 		when 'v':
 		    after = FALSE;
-		    msg("version %s. (mctesq was here)", release);
+		    msg("バージョン %s (Raspberry Pi Pico版)", release);
 		when 'S': 
 		    after = FALSE;
 		    save_game();
@@ -303,14 +302,12 @@ over:
 			delta.y += hero.y;
 			delta.x += hero.x;
 			fp = &flat(delta.y, delta.x);
-                        if (!terse)
-                            addmsg("You have found ");
 			if (chat(delta.y, delta.x) != TRAP)
-			    msg("no trap there");
+			    msg("そこには罠はありません");
 			else if (on(player, ISHALU))
-			    msg(tr_name[rnd(NTRAPS)]);
+			    msg("見つけた: %s", tr_name[rnd(NTRAPS)]);
 			else {
-			    msg(tr_name[*fp & F_TMASK]);
+			    msg("見つけた: %s", tr_name[*fp & F_TMASK]);
 			    *fp |= F_SEEN;
 			}
 		    }
@@ -321,7 +318,7 @@ over:
 		    {
 			wizard = FALSE;
 			turn_see(TRUE);
-			msg("not wizard any more");
+			msg("ウィザードモードを解除しました");
 		    }
 		    else
 		    {
@@ -330,10 +327,10 @@ over:
 			{
 			    noscore = TRUE;
 			    turn_see(FALSE);
-			    msg("you are suddenly as smart as Ken Arnold in dungeon #%d", dnum);
+			    msg("ダンジョン #%d のウィザード権限を得ました", dnum);
 			}
 			else
-			    msg("sorry");
+			    msg("パスワードが違います");
 		    }
 #endif
 		when ESCAPE:	/* Escape */
@@ -351,13 +348,13 @@ over:
 			countch = dir_ch;
 			goto over;
 		    }
-		when ')': current(cur_weapon, "wielding", NULL);
-		when ']': current(cur_armor, "wearing", NULL);
+		when ')': current(cur_weapon, "構えている武器", NULL);
+		when ']': current(cur_armor, "装備中の鎧", NULL);
 		when '=':
-		    current(cur_ring[LEFT], "wearing",
-					    terse ? "(L)" : "on left hand");
-		    current(cur_ring[RIGHT], "wearing",
-					    terse ? "(R)" : "on right hand");
+		    current(cur_ring[LEFT], "指輪",
+					    terse ? "(左)" : "左手");
+		    current(cur_ring[RIGHT], "指輪",
+					    terse ? "(右)" : "右手");
 		when '@':
 		    stat_msg = TRUE;
 		    status();
@@ -462,7 +459,7 @@ illcom(int ch)
 {
     save_msg = FALSE;
     count = 0;
-    msg("illegal command '%s'", unctrl(ch));
+    msg("無効なコマンドです '%s'", unctrl(ch));
     save_msg = TRUE;
 }
 
@@ -498,7 +495,7 @@ search()
 			if (rnd(5 + probinc) != 0)
 			    break;
 			chat(y, x) = DOOR;
-                        msg("a secret door");
+                        msg("隠し扉を見つけた！");
 foundone:
 			found = TRUE;
 			*fp |= F_REAL;
@@ -510,7 +507,7 @@ foundone:
 			    break;
 			chat(y, x) = TRAP;
 			if (!terse)
-			    addmsg("you found ");
+			    addmsg("見つけた: ");
 			if (on(player, ISHALU))
 			    msg(tr_name[rnd(NTRAPS)]);
 			else {
@@ -540,7 +537,7 @@ help()
     register struct h_list *strp;
     register char helpch;
     register int numprint, cnt;
-    msg("character you want help for (* for all): ");
+    msg("調べたいキーを入力してください (* で全一覧): ");
     helpch = readchar();
     mpos = 0;
     /*
@@ -558,7 +555,7 @@ help()
 		lower_msg = FALSE;
 		return;
 	    }
-	msg("unknown character '%s'", unctrl(helpch));
+	msg("未知のキーです '%s'", unctrl(helpch));
 	return;
     }
     /*
@@ -611,28 +608,28 @@ identify()
     register struct h_list *hp;
     register char *str;
     static struct h_list ident_list[] = {
-	{'|',		"wall of a room",		FALSE},
-	{'-',		"wall of a room",		FALSE},
-	{GOLD,		"gold",				FALSE},
-	{STAIRS,	"a staircase",			FALSE},
-	{DOOR,		"door",				FALSE},
-	{FLOOR,		"room floor",			FALSE},
-	{PLAYER,	"you",				FALSE},
-	{PASSAGE,	"passage",			FALSE},
-	{TRAP,		"trap",				FALSE},
-	{POTION,	"potion",			FALSE},
-	{SCROLL,	"scroll",			FALSE},
-	{FOOD,		"food",				FALSE},
-	{WEAPON,	"weapon",			FALSE},
-	{' ',		"solid rock",			FALSE},
-	{ARMOR,		"armor",			FALSE},
-	{AMULET,	"the Amulet of Yendor",		FALSE},
-	{RING,		"ring",				FALSE},
-	{STICK,		"wand or staff",		FALSE},
+	{'|',		"部屋の壁",			FALSE},
+	{'-',		"部屋の壁",			FALSE},
+	{GOLD,		"金貨",				FALSE},
+	{STAIRS,	"階段",				FALSE},
+	{DOOR,		"扉",				FALSE},
+	{FLOOR,		"部屋の床",			FALSE},
+	{PLAYER,	"あなた",			FALSE},
+	{PASSAGE,	"通路",				FALSE},
+	{TRAP,		"罠",				FALSE},
+	{POTION,	"薬",				FALSE},
+	{SCROLL,	"巻物",				FALSE},
+	{FOOD,		"食料",				FALSE},
+	{WEAPON,	"武器",				FALSE},
+	{' ',		"硬い岩壁",			FALSE},
+	{ARMOR,		"鎧",				FALSE},
+	{AMULET,	"イェンダーの魔除け",		FALSE},
+	{RING,		"指輪",				FALSE},
+	{STICK,		"杖",				FALSE},
 	{'\0'}
     };
 
-    msg("what do you want identified? ");
+    msg("何を調べますか？ ");
     ch = readchar();
     mpos = 0;
     if (ch == ESCAPE)
@@ -644,7 +641,7 @@ identify()
 	str = monsters[ch-'A'].m_name;
     else
     {
-	str = "unknown character";
+	str = "不明な記号";
 	for (hp = ident_list; hp->h_ch != '\0'; hp++)
 	    if (hp->h_ch == ch)
 	    {
@@ -665,7 +662,7 @@ d_level()
     if (levit_check())
 	return;
     if (chat(hero.y, hero.x) != STAIRS)
-	msg("I see no way down");
+	msg("下り階段がありません");
     else
     {
 	level++;
@@ -690,12 +687,12 @@ u_level()
 	    if (level == 0)
 		total_winner();
 	    new_level();
-	    msg("you feel a wrenching sensation in your gut");
+	    msg("内臓が締め付けられるような激しい衝撃を感じた！");
 	}
 	else
-	    msg("your way is magically blocked");
+	    msg("魔力によって道が遮られている！");
     else
-	msg("I see no way up");
+	msg("上り階段がありません");
 }
 
 /*
@@ -708,7 +705,7 @@ levit_check()
 {
     if (!on(player, ISLEVIT))
 	return FALSE;
-    msg("You can't.  You're floating off the ground!");
+    msg("宙に浮いているためできません！");
     return TRUE;
 }
 
@@ -724,7 +721,7 @@ call()
     register char **guess, *elsewise = NULL;
     register bool *know;
 
-    obj = get_item("call", CALLABLE);
+    obj = get_item("名付け", CALLABLE);
     /*
      * Make certain that it is somethings that we want to wear
      */
@@ -753,7 +750,7 @@ norm:
 	    if (*guess != NULL)
 		elsewise = *guess;
 	when FOOD:
-	    msg("you can't call that anything");
+	    msg("それには名前をつけられません");
 	    return;
 	otherwise:
 	    guess = &obj->o_label;
@@ -762,19 +759,17 @@ norm:
     }
     if (know != NULL && *know)
     {
-	msg("that has already been identified");
+	msg("それはすでに鑑定済みです");
 	return;
     }
     if (elsewise != NULL && elsewise == *guess)
     {
-	if (!terse)
-	    addmsg("Was ");
-	msg("called \"%s\"", elsewise);
+	msg("現在の呼び名: \"%s\"", elsewise);
     }
     if (terse)
-	msg("call it: ");
+	msg("命名: ");
     else
-	msg("what do you want to call it? ");
+	msg("何と名付けますか？ ");
 
     if (elsewise == NULL)
 	strcpy(prbuf, "");
@@ -799,22 +794,18 @@ current(THING *cur, char *how, char *where)
     after = FALSE;
     if (cur != NULL)
     {
-	if (!terse)
-	    addmsg("you are %s (", how);
 	inv_describe = FALSE;
-	addmsg("%c) %s", cur->o_packch, inv_name(cur, TRUE));
-	inv_describe = TRUE;
 	if (where)
-	    addmsg(" %s", where);
-	endmsg();
+	    msg("%s: (%c) %s (%s)", how, cur->o_packch, inv_name(cur, TRUE), where);
+	else
+	    msg("%s: (%c) %s", how, cur->o_packch, inv_name(cur, TRUE));
+	inv_describe = TRUE;
     }
     else
     {
-	if (!terse)
-	    addmsg("you are ");
-	addmsg("%s nothing", how);
 	if (where)
-	    addmsg(" %s", where);
-	endmsg();
+	    msg("%s: なし (%s)", how, where);
+	else
+	    msg("%s: なし", how);
     }
 }

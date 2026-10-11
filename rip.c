@@ -58,10 +58,10 @@ score(int amount, int flags, char monst)
     void (*fp)(int);
     unsigned int uid;
     static char *reason[] = {
-	"killed",
-	"quit",
-	"A total winner",
-	"killed with Amulet"
+	"戦死",
+	"ゲーム中断",
+	"完全勝利（生還）",
+	"魔除けを持って戦死"
     };
 
     start_score();
@@ -72,7 +72,7 @@ score(int amount, int flags, char monst)
 #endif
         )
     {
-	mvaddstr(LINES - 1, 0 , "[Press return to continue]");
+	mvaddstr(LINES - 1, 0 , "[Enterキーを押してください]");
         refresh();
         wgetnstr(stdscr,prbuf,80);
  	endwin();
@@ -159,18 +159,18 @@ score(int amount, int flags, char monst)
      */
     if (flags != -1)
 	putchar('\n');
-    printf("Top %s %s:\n", Numname, allscore ? "Scores" : "Rogueists");
-    printf("   Score Name\n");
+    printf("トップ %s スコア:\n", Numname);
+    printf(" 順位  スコア 名前\n");
     for (scp = top_ten; scp < endp; scp++)
     {
 	if (scp->sc_score) {
 	    if (sc2 == scp)
             md_raw_standout();
-	    printf("%2d %5d %s: %s on level %d", (int) (scp - top_ten + 1),
+	    printf("%2d %5d %s: %s (地下%d階)", (int) (scp - top_ten + 1),
 		scp->sc_score, scp->sc_name, reason[scp->sc_flags],
 		scp->sc_level);
 	    if (scp->sc_flags == 0 || scp->sc_flags == 3)
-		printf(" by %s", killname((char) scp->sc_monster, TRUE));
+		printf(" / 倒された相手: %s", killname((char) scp->sc_monster, TRUE));
 #ifdef MASTER
 	    if (prflags == 1)
 	    {
@@ -238,11 +238,8 @@ death(char monst)
     killer = killname(monst, FALSE);
     if (!tombstone)
     {
-	mvprintw(LINES - 2, 0, "Killed by ");
 	killer = killname(monst, FALSE);
-	if (monst != 's' && monst != 'h')
-	    printw("a%s ", vowelstr(killer));
-	printw("%s with %d gold", killer, purse);
+	mvprintw(LINES - 2, 0, "%sにより倒された (%d ゴールド所持)", killer, purse);
     }
     else
     {
@@ -253,12 +250,10 @@ death(char monst)
 	while (*dp)
 	    addstr(*dp++);
 	mvaddstr(17, center(killer), killer);
-	if (monst == 's' || monst == 'h')
-	    mvaddch(16, 32, ' ');
-	else
-	    mvaddstr(16, 33, vowelstr(killer));
+	mvaddch(16, 32, ' ');
+	mvaddch(16, 33, ' ');
 	mvaddstr(14, center(whoami), whoami);
-	sprintf(prbuf, "%d Au", purse);
+	sprintf(prbuf, "%d G", purse);
 	move(15, center(prbuf));
 	addstr(prbuf);
 	sprintf(prbuf, "%4d", 1900+lt->tm_year);
@@ -267,10 +262,39 @@ death(char monst)
     move(LINES - 1, 0);
     refresh();
     score(purse, amulet ? 3 : 0, monst);
-    printf("[Press return to continue]");
+    printf("[Enterキーを押してください]");
     fflush(stdout);
     (void) fgets(prbuf,10,stdin);
     my_exit(0);
+}
+
+/*
+ * str_width:
+ *	Return the visual display column width of a UTF-8 string
+ */
+int
+str_width(const char *s)
+{
+    int w = 0;
+    while (*s) {
+        unsigned char c = (unsigned char)*s;
+        if (c < 0x80) {
+            w++;
+            s++;
+        } else if ((c & 0xe0) == 0xc0) {
+            w += 2;
+            s += 2;
+        } else if ((c & 0xf0) == 0xe0) {
+            w += 2;
+            s += 3;
+        } else if ((c & 0xf8) == 0xf0) {
+            w += 2;
+            s += 4;
+        } else {
+            s++;
+        }
+    }
+    return w;
 }
 
 /*
@@ -280,7 +304,7 @@ death(char monst)
 int
 center(char *str)
 {
-    return 28 - (((int)strlen(str) + 1) / 2);
+    return 28 - ((str_width(str) + 1) / 2);
 }
 
 /*
@@ -307,16 +331,16 @@ total_winner()
     addstr("  @   @ @   @ @  @@   @   @ @   @ @   @ @         @   @  @     \n");
     addstr("   @@@   @@@   @@ @   @   @  @@@@  @@@@  @@@     @@@   @@   @  \n");
     addstr("                                                               \n");
-    addstr("     Congratulations, you have made it to the light of day!    \n");
+    addstr("     おめでとう！ あなたは生きて地上へ生還した！        \n");
     standend();
-    addstr("\nYou have joined the elite ranks of those who have escaped the\n");
-    addstr("Dungeons of Doom alive.  You journey home and sell all your loot at\n");
-    addstr("a great profit and are admitted to the Fighters' Guild.\n");
-    mvaddstr(LINES - 1, 0, "--Press space to continue--");
+    addstr("\nあなたは『運命の洞窟』を生きて脱出した英雄の一人となった。\n");
+    addstr("手に入れた数々の宝物を売り払って莫大な富を築き、\n");
+    addstr("戦士ギルドの伝説的な一員として迎え入れられた。\n");
+    mvaddstr(LINES - 1, 0, "--スペースキーを押してください--");
     refresh();
     wait_for(' ');
     clear();
-    mvaddstr(0, 0, "   Worth  Item\n");
+    mvaddstr(0, 0, "   価値  アイテム\n");
     oldpurse = purse;
     for (obj = pack; obj != NULL; obj = next(obj))
     {
@@ -378,7 +402,7 @@ total_winner()
 	printw("%c) %5d  %s\n", obj->o_packch, worth, inv_name(obj, FALSE));
 	purse += worth;
     }
-    printw("   %5d  Gold Pieces          ", oldpurse);
+    printw("   %5d  ゴールド              ", oldpurse);
     refresh();
     score(purse, 2, ' ');
     my_exit(0);
@@ -393,38 +417,31 @@ killname(char monst, bool doart)
 {
     struct h_list *hp;
     char *sp;
-    bool article;
     static struct h_list nlist[] = {
-	{'a',	"arrow",		TRUE},
-	{'b',	"bolt",			TRUE},
-	{'d',	"dart",			TRUE},
-	{'h',	"hypothermia",		FALSE},
-	{'s',	"starvation",		FALSE},
+	{'a',	"矢",			TRUE},
+	{'b',	"光弾",			TRUE},
+	{'d',	"ダーツ",		TRUE},
+	{'h',	"凍死",			FALSE},
+	{'s',	"飢餓",			FALSE},
 	{'\0'}
     };
 
+    (void)doart;
     if (isupper(monst))
     {
 	sp = monsters[monst-'A'].m_name;
-	article = TRUE;
     }
     else
     {
-	sp = "Wally the Wonder Badger";
-	article = FALSE;
+	sp = "不思議なアナグマのウォーリー";
 	for (hp = nlist; hp->h_ch; hp++)
 	    if (hp->h_ch == monst)
 	    {
 		sp = hp->h_desc;
-		article = hp->h_print;
 		break;
 	    }
     }
-    if (doart && article)
-	sprintf(prbuf, "a%s ", vowelstr(sp));
-    else
-	prbuf[0] = '\0';
-    strcat(prbuf, sp);
+    strcpy(prbuf, sp);
     return prbuf;
 }
 

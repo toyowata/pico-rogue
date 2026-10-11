@@ -29,85 +29,79 @@ inv_name(THING *obj, bool drop)
     char *sp;
     int which;
 
+    (void)drop;
     pb = prbuf;
     which = obj->o_which;
     switch (obj->o_type)
     {
         case POTION:
-	    nameit(obj, "potion", p_colors[which], &pot_info[which], nullstr);
+	    nameit(obj, "薬", p_colors[which], &pot_info[which], nullstr);
 	when RING:
-	    nameit(obj, "ring", r_stones[which], &ring_info[which], ring_num);
+	    nameit(obj, "指輪", r_stones[which], &ring_info[which], ring_num);
 	when STICK:
-	    nameit(obj, ws_type[which], ws_made[which], &ws_info[which], charge_str);
+	    nameit(obj, "杖", ws_made[which], &ws_info[which], charge_str);
 	when SCROLL:
-	    if (obj->o_count == 1)
-	    {
-		strcpy(pb, "A scroll ");
-		pb = &prbuf[9];
-	    }
-	    else
-	    {
-		sprintf(pb, "%d scrolls ", obj->o_count);
-		pb = &prbuf[strlen(prbuf)];
-	    }
 	    op = &scr_info[which];
-	    if (op->oi_know)
-		sprintf(pb, "of %s", op->oi_name);
-	    else if (op->oi_guess)
-		sprintf(pb, "called %s", op->oi_guess);
-	    else
-		sprintf(pb, "titled '%s'", s_names[which]);
+	    if (op->oi_know) {
+		if (obj->o_count == 1)
+		    sprintf(pb, "%s", op->oi_name);
+		else
+		    sprintf(pb, "%s (%d個)", op->oi_name, obj->o_count);
+	    }
+	    else if (op->oi_guess) {
+		if (obj->o_count == 1)
+		    sprintf(pb, "%sと名付けた巻物", op->oi_guess);
+		else
+		    sprintf(pb, "%sと名付けた巻物 (%d個)", op->oi_guess, obj->o_count);
+	    }
+	    else {
+		if (obj->o_count == 1)
+		    sprintf(pb, "『%s』と記された巻物", s_names[which]);
+		else
+		    sprintf(pb, "『%s』と記された巻物 (%d個)", s_names[which], obj->o_count);
+	    }
 	when FOOD:
-	    if (which == 1)
+	    if (which == 1) {
 		if (obj->o_count == 1)
-		    sprintf(pb, "A%s %s", vowelstr(fruit), fruit);
+		    sprintf(pb, "%s", fruit);
 		else
-		    sprintf(pb, "%d %ss", obj->o_count, fruit);
-	    else
+		    sprintf(pb, "%s (%d個)", fruit, obj->o_count);
+	    } else {
 		if (obj->o_count == 1)
-		    strcpy(pb, "Some food");
+		    strcpy(pb, "食料");
 		else
-		    sprintf(pb, "%d rations of food", obj->o_count);
+		    sprintf(pb, "食料 (%d個)", obj->o_count);
+	    }
 	when WEAPON:
 	    sp = weap_info[which].oi_name;
-	    if (obj->o_count > 1)
-		sprintf(pb, "%d ", obj->o_count);
-	    else
-		sprintf(pb, "A%s ", vowelstr(sp));
-	    pb = &prbuf[strlen(prbuf)];
 	    if (obj->o_flags & ISKNOW)
-		sprintf(pb, "%s %s", num(obj->o_hplus,obj->o_dplus,WEAPON), sp);
+		sprintf(pb, "%s %s", num(obj->o_hplus, obj->o_dplus, WEAPON), sp);
 	    else
 		sprintf(pb, "%s", sp);
-	    if (obj->o_count > 1)
-		strcat(pb, "s");
-	    if (obj->o_label != NULL)
-	    {
+	    if (obj->o_count > 1) {
 		pb = &prbuf[strlen(prbuf)];
-		sprintf(pb, " called %s", obj->o_label);
+		sprintf(pb, " (%d個)", obj->o_count);
+	    }
+	    if (obj->o_label != NULL) {
+		pb = &prbuf[strlen(prbuf)];
+		sprintf(pb, " (%sと命名)", obj->o_label);
 	    }
 	when ARMOR:
 	    sp = arm_info[which].oi_name;
-	    if (obj->o_flags & ISKNOW)
-	    {
-		sprintf(pb, "%s %s [",
-		    num(a_class[which] - obj->o_arm, 0, ARMOR), sp);
-		if (!terse)
-		    strcat(pb, "protection ");
-		pb = &prbuf[strlen(prbuf)];
-		sprintf(pb, "%d]", 10 - obj->o_arm);
-	    }
-	    else
+	    if (obj->o_flags & ISKNOW) {
+		sprintf(pb, "%s %s [防御力 %d]",
+		    num(a_class[which] - obj->o_arm, 0, ARMOR), sp, 10 - obj->o_arm);
+	    } else {
 		sprintf(pb, "%s", sp);
-	    if (obj->o_label != NULL)
-	    {
+	    }
+	    if (obj->o_label != NULL) {
 		pb = &prbuf[strlen(prbuf)];
-		sprintf(pb, " called %s", obj->o_label);
+		sprintf(pb, " (%sと命名)", obj->o_label);
 	    }
 	when AMULET:
-	    strcpy(pb, "The Amulet of Yendor");
+	    strcpy(pb, "イェンダーの魔除け");
 	when GOLD:
-	    sprintf(prbuf, "%d Gold pieces", obj->o_goldval);
+	    sprintf(prbuf, "%d ゴールド", obj->o_goldval);
 #ifdef MASTER
 	otherwise:
 	    debug("Picked up something funny %s", unctrl(obj->o_type));
@@ -117,18 +111,14 @@ inv_name(THING *obj, bool drop)
     if (inv_describe)
     {
 	if (obj == cur_armor)
-	    strcat(pb, " (being worn)");
+	    strcat(pb, " (装備中)");
 	if (obj == cur_weapon)
-	    strcat(pb, " (weapon in hand)");
+	    strcat(pb, " (構えている)");
 	if (obj == cur_ring[LEFT])
-	    strcat(pb, " (on left hand)");
+	    strcat(pb, " (左手にはめている)");
 	else if (obj == cur_ring[RIGHT])
-	    strcat(pb, " (on right hand)");
+	    strcat(pb, " (右手にはめている)");
     }
-    if (drop && isupper(prbuf[0]))
-	prbuf[0] = (char) tolower(prbuf[0]);
-    else if (!drop && islower(*prbuf))
-	*prbuf = (char) toupper(*prbuf);
     prbuf[MAXSTR-1] = '\0';
     return prbuf;
 }
@@ -148,10 +138,10 @@ drop()
     if (ch != FLOOR && ch != PASSAGE)
     {
 	after = FALSE;
-	msg("there is something there already");
+	msg("そこにはすでに物が置かれています");
 	return;
     }
-    if ((obj = get_item("drop", 0)) == NULL)
+    if ((obj = get_item("置く", 0)) == NULL)
 	return;
     if (!dropcheck(obj))
 	return;
@@ -165,7 +155,7 @@ drop()
     obj->o_pos = hero;
     if (obj->o_type == AMULET)
 	amulet = FALSE;
-    msg("dropped %s", inv_name(obj, TRUE));
+    msg("%s を置いた。", inv_name(obj, TRUE));
 }
 
 /*
@@ -182,7 +172,7 @@ dropcheck(THING *obj)
 	    return TRUE;
     if (obj->o_flags & ISCURSED)
     {
-	msg("you can't.  It appears to be cursed");
+	msg("外せない！ 呪われているようだ！");
 	return FALSE;
     }
     if (obj == cur_weapon)
@@ -618,24 +608,27 @@ void
 nameit(THING *obj, char *type, char *which, struct obj_info *op,
     char *(*prfunc)(THING *))
 {
-    char *pb;
-
     if (op->oi_know || op->oi_guess)
     {
-	if (obj->o_count == 1)
-	    sprintf(prbuf, "A %s ", type);
-	else
-	    sprintf(prbuf, "%d %ss ", obj->o_count, type);
-	pb = &prbuf[strlen(prbuf)];
-	if (op->oi_know)
-	    sprintf(pb, "of %s%s(%s)", op->oi_name, (*prfunc)(obj), which);
-	else if (op->oi_guess)
-	    sprintf(pb, "called %s%s(%s)", op->oi_guess, (*prfunc)(obj), which);
+	if (op->oi_know) {
+	    if (obj->o_count == 1)
+		sprintf(prbuf, "%s%s", op->oi_name, (*prfunc)(obj));
+	    else
+		sprintf(prbuf, "%s%s (%d個)", op->oi_name, (*prfunc)(obj), obj->o_count);
+	}
+	else if (op->oi_guess) {
+	    if (obj->o_count == 1)
+		sprintf(prbuf, "%sと名付けた%s(%s)", op->oi_guess, type, which);
+	    else
+		sprintf(prbuf, "%sと名付けた%s(%s) (%d個)", op->oi_guess, type, which, obj->o_count);
+	}
     }
-    else if (obj->o_count == 1)
-	sprintf(prbuf, "A%s %s %s", vowelstr(which), which, type);
-    else
-	sprintf(prbuf, "%d %s %ss", obj->o_count, which, type);
+    else {
+	if (obj->o_count == 1)
+	    sprintf(prbuf, "%sの%s", which, type);
+	else
+	    sprintf(prbuf, "%sの%s (%d個)", which, type, obj->o_count);
+    }
 }
 
 /*

@@ -1,5 +1,6 @@
 /*
  * pico_curses.c - Curses implementation over ANSI VT100 USB Serial for RP2040
+ * With multi-byte UTF-8 full-width Japanese character support (2 columns)
  */
 
 #include "curses.h"
@@ -17,6 +18,13 @@ WINDOW *curscr = &_curscr_inst;
 
 static bool g_clearok = false;
 
+static void set_empty_cell(Cell *cell) {
+    cell->ch[0] = ' ';
+    cell->ch[1] = '\0';
+    cell->width = 1;
+    cell->attrs = A_NORMAL;
+}
+
 static void init_window_struct(WINDOW *win, int nlines, int ncols, int begy, int begx) {
     win->_cury = 0;
     win->_curx = 0;
@@ -28,9 +36,44 @@ static void init_window_struct(WINDOW *win, int nlines, int ncols, int begy, int
     win->_attrs = A_NORMAL;
     for (int y = 0; y < LINES; y++) {
         for (int x = 0; x < COLS; x++) {
-            win->_lines[y][x] = ' ';
+            set_empty_cell(&win->_lines[y][x]);
         }
     }
+}
+
+static void utf8_char_info(const char *s, int *byte_len, int *char_width) {
+    unsigned char c = (unsigned char)*s;
+    if (c < 0x80) {
+        *byte_len = 1;
+        *char_width = 1;
+        return;
+    }
+    if ((c & 0xE0) == 0xC0) {
+        *byte_len = 2;
+        *char_width = 1;
+        return;
+    }
+    if ((c & 0xF0) == 0xE0) {
+        *byte_len = 3;
+        // Half-width Katakana: U+FF61 - U+FF9F (0xEF 0xBD 0xA1 - 0xEF 0xBE 0x9F)
+        if (c == 0xEF && (unsigned char)s[1] == 0xBD && (unsigned char)s[2] >= 0xA1) {
+            *char_width = 1;
+        } else if (c == 0xEF && (unsigned char)s[1] == 0xBE && (unsigned char)s[2] <= 0x9F) {
+            *char_width = 1;
+        } else {
+            // Kanji, Hiragana, Katakana, Full-width symbols
+            *char_width = 2;
+        }
+        return;
+    }
+    if ((c & 0xF8) == 0xF0) {
+        *byte_len = 4;
+        *char_width = 2;
+        return;
+    }
+    // Fallback for unexpected byte
+    *byte_len = 1;
+    *char_width = 1;
 }
 
 WINDOW *initscr(void) {
@@ -42,7 +85,9 @@ WINDOW *initscr(void) {
     // Invalidate curscr buffer so initial refresh draws everything
     for (int y = 0; y < LINES; y++) {
         for (int x = 0; x < COLS; x++) {
-            curscr->_lines[y][x] = 0xFFFF;
+            curscr->_lines[y][x].ch[0] = '\0';
+            curscr->_lines[y][x].width = 0xFF;
+            curscr->_lines[y][x].attrs = 0xFFFF;
         }
     }
 
@@ -123,7 +168,12 @@ int waddch(WINDOW *win, chtype ch) {
     }
 
     if (win->_cury >= 0 && win->_cury < LINES && win->_curx >= 0 && win->_curx < COLS) {
-        win->_lines[win->_cury][win->_curx] = (ch & A_CHARTEXT) | win->_attrs | (ch & ~A_CHARTEXT);
+        Cell *cell = &win->_lines[win->_cury][win->_curx];
+        cell->ch[0] = c;
+        cell->ch[1] = '\0';
+        cell->width = 1;
+        cell->attrs = win->_attrs | (ch & ~A_CHARTEXT);
+
         win->_curx++;
         if (win->_curx >= COLS) {
             win->_curx = 0;
@@ -150,8 +200,50 @@ int mvwaddch(WINDOW *win, int y, int x, chtype ch) {
 int waddstr(WINDOW *win, const char *str) {
     if (!win) win = stdscr;
     if (!str) return ERR;
-    while (*str) {
-        waddch(win, (unsigned char)*str++);
+
+    const char *p = str;
+    while (*p) {
+        unsigned char c = (unsigned char)*p;
+        if (c < 0x80) {
+            waddch(win, c);
+            p++;
+        } else {
+            int blen = 1, width = 2;
+            utf8_char_info(p, &blen, &width);
+
+            if (win->_curx + width > COLS) {
+                win->_curx = 0;
+                if (win->_cury < LINES - 1) win->_cury++;
+            }
+
+            if (win->_cury < LINES) {
+                // Leading cell
+                Cell *c1 = &win->_lines[win->_cury][win->_curx];
+                memset(c1->ch, 0, sizeof(c1->ch));
+                for (int i = 0; i < blen && i < 4; i++) {
+                    c1->ch[i] = p[i];
+                }
+                c1->ch[blen < 4 ? blen : 4] = '\0';
+                c1->width = (uint8_t)width;
+                c1->attrs = win->_attrs;
+                win->_curx++;
+
+                if (width == 2 && win->_curx < COLS) {
+                    // Trail cell for full-width character
+                    Cell *c2 = &win->_lines[win->_cury][win->_curx];
+                    memset(c2->ch, 0, sizeof(c2->ch));
+                    c2->width = 0;
+                    c2->attrs = win->_attrs;
+                    win->_curx++;
+                }
+
+                if (win->_curx >= COLS) {
+                    win->_curx = 0;
+                    if (win->_cury < LINES - 1) win->_cury++;
+                }
+            }
+            p += blen;
+        }
     }
     return OK;
 }
@@ -206,7 +298,7 @@ int mvwprintw(WINDOW *win, int y, int x, const char *fmt, ...) {
 chtype winch(WINDOW *win) {
     if (!win) win = stdscr;
     if (win->_cury >= 0 && win->_cury < LINES && win->_curx >= 0 && win->_curx < COLS) {
-        return win->_lines[win->_cury][win->_curx];
+        return (chtype)(unsigned char)win->_lines[win->_cury][win->_curx].ch[0];
     }
     return ' ';
 }
@@ -215,7 +307,7 @@ int werase(WINDOW *win) {
     if (!win) win = stdscr;
     for (int y = 0; y < LINES; y++) {
         for (int x = 0; x < COLS; x++) {
-            win->_lines[y][x] = ' ';
+            set_empty_cell(&win->_lines[y][x]);
         }
     }
     win->_cury = 0;
@@ -241,7 +333,7 @@ int wclrtoeol(WINDOW *win) {
     int y = win->_cury;
     if (y >= 0 && y < LINES) {
         for (int x = win->_curx; x < COLS; x++) {
-            win->_lines[y][x] = ' ';
+            set_empty_cell(&win->_lines[y][x]);
         }
     }
     return OK;
@@ -256,7 +348,7 @@ int wclrtobot(WINDOW *win) {
     wclrtoeol(win);
     for (int y = win->_cury + 1; y < LINES; y++) {
         for (int x = 0; x < COLS; x++) {
-            win->_lines[y][x] = ' ';
+            set_empty_cell(&win->_lines[y][x]);
         }
     }
     return OK;
@@ -288,10 +380,11 @@ int standend(void) {
 
 int touchwin(WINDOW *win) {
     (void)win;
-    // Mark curscr invalid so everything will be refreshed
     for (int y = 0; y < LINES; y++) {
         for (int x = 0; x < COLS; x++) {
-            curscr->_lines[y][x] = 0xFFFF;
+            curscr->_lines[y][x].ch[0] = '\0';
+            curscr->_lines[y][x].width = 0xFF;
+            curscr->_lines[y][x].attrs = 0xFFFF;
         }
     }
     return OK;
@@ -349,7 +442,9 @@ int wrefresh(WINDOW *win) {
         printf("\033[2J");
         for (int r = 0; r < LINES; r++) {
             for (int c = 0; c < COLS; c++) {
-                curscr->_lines[r][c] = 0xFFFF;
+                curscr->_lines[r][c].ch[0] = '\0';
+                curscr->_lines[r][c].width = 0xFF;
+                curscr->_lines[r][c].attrs = 0xFFFF;
             }
         }
     }
@@ -360,30 +455,41 @@ int wrefresh(WINDOW *win) {
 
     for (int y = 0; y < LINES; y++) {
         for (int x = 0; x < COLS; x++) {
-            chtype wc = win->_lines[y][x];
-            if (force_all || curscr->_lines[y][x] != wc) {
+            Cell *wc = &win->_lines[y][x];
+            Cell *cc = &curscr->_lines[y][x];
+
+            bool diff = (wc->attrs != cc->attrs) || (wc->width != cc->width) || (strcmp(wc->ch, cc->ch) != 0);
+
+            if (force_all || diff) {
+                // If this is a trail cell (width == 0), cursor has already advanced due to wide char
+                if (wc->width == 0) {
+                    *cc = *wc;
+                    continue;
+                }
+
                 if (last_cursor_y != y || last_cursor_x != x) {
                     printf("\033[%d;%dH", y + 1, x + 1);
                     last_cursor_y = y;
                     last_cursor_x = x;
                 }
 
-                bool is_so = (wc & A_STANDOUT) != 0;
+                bool is_so = (wc->attrs & A_STANDOUT) != 0;
                 if (is_so != in_standout) {
                     in_standout = is_so;
-                    if (in_standout) {
-                        printf("\033[7m");
-                    } else {
-                        printf("\033[0m");
-                    }
+                    printf(in_standout ? "\033[7m" : "\033[0m");
                 }
 
-                char c = (char)(wc & A_CHARTEXT);
-                if (c < 32 || c > 126) c = ' ';
-                putchar(c);
+                if (wc->width == 2) {
+                    printf("%s", wc->ch);
+                    last_cursor_x += 2;
+                } else {
+                    char c = wc->ch[0];
+                    if (c < 32 || c > 126) c = ' ';
+                    putchar(c);
+                    last_cursor_x++;
+                }
 
-                curscr->_lines[y][x] = wc;
-                last_cursor_x++;
+                *cc = *wc;
             }
         }
     }
@@ -413,7 +519,6 @@ int getch(void) {
     }
 
     if (c == 27) { // ESC
-        // Check if there is an escape sequence following
         int c2 = getchar_timeout_us(30000); // 30ms timeout
         if (c2 < 0) {
             return 27; // Bare ESC key
@@ -442,8 +547,8 @@ int getch(void) {
                     if (c3 == '3') return '\b'; // Del
                 } else if (c4 == ';') {
                     // Shifted arrows: \033[1;2A etc.
-                    int c5 = getchar_timeout_us(30000); // '2'
-                    int c6 = getchar_timeout_us(30000); // modifier target
+                    int c5 = getchar_timeout_us(30000);
+                    int c6 = getchar_timeout_us(30000);
                     if (c5 == '2') {
                         if (c6 == 'A') return 'K';
                         if (c6 == 'B') return 'J';

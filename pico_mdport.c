@@ -9,6 +9,9 @@
 
 void md_init(void) {
     stdio_init_all();
+    while (!stdio_usb_connected()) {
+        sleep_ms(100);
+    }
 
     // Wait briefly for USB CDC connection
     sleep_ms(1000);
@@ -16,16 +19,19 @@ void md_init(void) {
     // Initial prompt so player sees the game has booted over serial
     printf("\033[0m\033[2J\033[H");
     printf("\r\n======================================================\r\n");
-    printf("        Rogue 5.4 - Raspberry Pi Pico Port             \r\n");
+    printf("        Rogue 5.4 - Raspberry Pi Pico 日本語移植版       \r\n");
     printf("======================================================\r\n");
-    printf("Serial Configuration: 115200 8N1 (ANSI / VT100)\r\n");
-    printf("Terminal recommended size: 80 cols x 24 lines\r\n");
-    printf("\r\nControls:\r\n");
-    printf("  Arrow keys or hjkl / yubn: Move\r\n");
-    printf("  Shift + Arrow keys       : Run / Fast Move\r\n");
-    printf("  ?                        : In-game help\r\n");
-    printf("  Q                        : Quit game\r\n");
-    printf("\r\nPress [SPACE] or [RETURN] to enter Dungeons of Doom...\r\n");
+    printf("シリアル通信設定: 115200 8N1 (ANSI / VT100, UTF-8)\r\n");
+    printf("推奨端末サイズ  : 80 桁 x 24 行\r\n");
+    printf("\r\n基本操作:\r\n");
+    printf("  矢印キー / hjkl / yubn   : 移動 / 攻撃\r\n");
+    printf("  Shift + 矢印キー         : 走る（壁まで直進）\r\n");
+    printf("  s                        : 周囲を探索（隠し扉・罠の発見）\r\n");
+    printf("  i                        : 持ち物一覧\r\n");
+    printf("  e / q / r / w / W / z    : 食料/薬/巻物/武器/鎧/杖\r\n");
+    printf("  ?                        : キーヘルプ表示\r\n");
+    printf("  Q                        : ゲーム終了\r\n");
+    printf("\r\n[スペース] または [Enter] キーを押すとゲームを開始します...\r\n");
     fflush(stdout);
 
     // Wait for player to press a key before starting

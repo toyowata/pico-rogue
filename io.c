@@ -14,10 +14,39 @@
  * msg:
  *	Display a message at the top of the screen.
  */
-#define MAXMSG	(NUMCOLS - sizeof "--More--")
+#define MAXMSG	(NUMCOLS - 9)
 
-static char msgbuf[2*MAXMSG+1];
+static char msgbuf[512];
 static int newpos = 0;
+
+/*
+ * utf8_strwidth:
+ *	Return the visual display column width of a UTF-8 string
+ */
+static int
+utf8_strwidth(const char *s)
+{
+    int w = 0;
+    while (*s) {
+        unsigned char c = (unsigned char)*s;
+        if (c < 0x80) {
+            w++;
+            s++;
+        } else if ((c & 0xe0) == 0xc0) {
+            w += 2;
+            s += 2;
+        } else if ((c & 0xf0) == 0xe0) {
+            w += 2;
+            s += 3;
+        } else if ((c & 0xf8) == 0xf0) {
+            w += 2;
+            s += 4;
+        } else {
+            s++;
+        }
+    }
+    return w;
+}
 
 /* VARARGS1 */
 int
@@ -74,7 +103,10 @@ endmsg()
     if (mpos)
     {
 	look(FALSE);
-	mvaddstr(0, mpos, "--More--");
+	int p = mpos;
+	if (p > NUMCOLS - 8)
+	    p = NUMCOLS - 8;
+	mvaddstr(0, p, "--続く--");
 	refresh();
 	if (!msg_esc)
 	{
@@ -122,10 +154,10 @@ doadd(char *fmt, va_list args)
      * Do the printf into buf
      */
     vsprintf(buf, fmt, args);
-    if (strlen(buf) + newpos >= MAXMSG)
+    if (utf8_strwidth(buf) + newpos >= MAXMSG)
         endmsg(); 
     strcat(msgbuf, buf);
-    newpos = (int) strlen(msgbuf);
+    newpos = utf8_strwidth(msgbuf);
 }
 
 /*
@@ -184,7 +216,7 @@ status()
     static int s_exp = 0;
     static char *state_name[] =
     {
-	"", "Hungry", "Weak", "Faint"
+	"", "空腹", "衰弱", "気絶"
     };
 
     /*
@@ -223,7 +255,7 @@ status()
     if (stat_msg)
     {
 	move(0, 0);
-        msg("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%ld  %s",
+        msg("階層: %d  金: %-5d  HP: %*d(%*d)  腕力: %2d(%d)  防御: %-2d  経験: %d/%ld  %s",
 	    level, purse, hpwidth, pstats.s_hpt, hpwidth, max_hp, pstats.s_str,
 	    max_stats.s_str, 10 - s_arm, pstats.s_lvl, pstats.s_exp,
 	    state_name[hungry_state]);
@@ -232,7 +264,7 @@ status()
     {
 	move(STATLINE, 0);
                 
-        printw("Level: %d  Gold: %-5d  Hp: %*d(%*d)  Str: %2d(%d)  Arm: %-2d  Exp: %d/%d  %s",
+        printw("階層: %d  金: %-5d  HP: %*d(%*d)  腕力: %2d(%d)  防御: %-2d  経験: %d/%d  %s",
 	    level, purse, hpwidth, pstats.s_hpt, hpwidth, max_hp, pstats.s_str,
 	    max_stats.s_str, 10 - s_arm, pstats.s_lvl, pstats.s_exp,
 	    state_name[hungry_state]);

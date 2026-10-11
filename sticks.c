@@ -53,17 +53,17 @@ do_zap()
     char monster, oldch;
     static THING bolt;
 
-    if ((obj = get_item("zap with", STICK)) == NULL)
+    if ((obj = get_item("振る", STICK)) == NULL)
 	return;
     if (obj->o_type != STICK)
     {
 	after = FALSE;
-	msg("you can't zap with that!");
+	msg("それは振ることができない！");
 	return;
     }
     if (obj->o_charges == 0)
     {
-	msg("nothing happens");
+	msg("何も起こらなかった。");
 	return;
     }
     switch (obj->o_which)
@@ -74,7 +74,7 @@ do_zap()
 	     */
 	    ws_info[WS_LIGHT].oi_know = TRUE;
 	    if (proom->r_flags & ISGONE)
-		msg("the corridor glows and then fades");
+		msg("通路が一瞬光ったが、すぐに消えた");
 	    else
 	    {
 		proom->r_flags &= ~ISDARK;
@@ -82,10 +82,10 @@ do_zap()
 		 * Light the room and put the player back up
 		 */
 		enter_room(&hero);
-		addmsg("the room is lit");
 		if (!terse)
-		    addmsg(" by a shimmering %s light", pick_color("blue"));
-		endmsg();
+		    msg("部屋が光り輝く%sの光で照らし出された！", pick_color("青"));
+		else
+		    msg("部屋が照らし出された！");
 	    }
 	when WS_DRAIN:
 	    /*
@@ -95,7 +95,7 @@ do_zap()
 	     */
 	    if (pstats.s_hpt < 2)
 	    {
-		msg("you are too weak to use it");
+		msg("弱すぎてそれを使うことができない！");
 		return;
 	    }
 	    else
@@ -186,9 +186,9 @@ do_zap()
 		&& !save_throw(VS_MAGIC, tp))
 		    hit_monster(unc(bolt.o_pos), &bolt);
 	    else if (terse)
-		msg("missle vanishes");
+		msg("光弾が消え去った");
 	    else
-		msg("the missle vanishes with a puff of smoke");
+		msg("光弾は一筋の煙となって消え去った");
 	when WS_HASTE_M:
 	case WS_SLOW_M:
 	    y = hero.y;
@@ -223,11 +223,11 @@ do_zap()
 	case WS_FIRE:
 	case WS_COLD:
 	    if (obj->o_which == WS_ELECT)
-		name = "bolt";
+		name = "稲妻";
 	    else if (obj->o_which == WS_FIRE)
-		name = "flame";
+		name = "火炎";
 	    else
-		name = "ice";
+		name = "冷気";
 	    fire_bolt(&hero, &delta, name);
 	    ws_info[obj->o_which].oi_know = TRUE;
 	when WS_NOP:
@@ -272,7 +272,7 @@ drain()
 		*dp++ = mp;
     if ((cnt = (int)(dp - drainee)) == 0)
     {
-	msg("you have a tingling feeling");
+	msg("チクチクするような感覚がした");
 	return;
     }
     *dp = NULL;
@@ -349,7 +349,7 @@ fire_bolt(coord *start, coord *dir, char *name)
 		dir->y = -dir->y;
 		dir->x = -dir->x;
 		c1--;
-		msg("the %s bounces", name);
+		msg("%sが跳ね返った！", name);
 		break;
 	    default:
 def:
@@ -362,12 +362,12 @@ def:
 		    {
 			bolt.o_pos = pos;
 			used = TRUE;
-			if (tp->t_type == 'D' && strcmp(name, "flame") == 0)
+			if (tp->t_type == 'D' && strcmp(name, "火炎") == 0)
 			{
-			    addmsg("the flame bounces");
 			    if (!terse)
-				addmsg(" off the dragon");
-			    endmsg();
+				msg("火炎はドラゴンの体に弾かれた！");
+			    else
+				msg("火炎が弾かれた！");
 			}
 			else
 			    hit_monster(unc(pos), &bolt);
@@ -377,9 +377,9 @@ def:
 			if (start == &hero)
 			    runto(&pos);
 			if (terse)
-			    msg("%s misses", name);
+			    msg("%sは外れた", name);
 			else
-			    msg("the %s whizzes past %s", name, set_mname(tp));
+			    msg("%sは%sをかすめて飛び去った", name, set_mname(tp));
 		    }
 		}
 		else if (hit_hero && ce(pos, hero))
@@ -397,12 +397,12 @@ def:
 			}
 			used = TRUE;
 			if (terse)
-			    msg("the %s hits", name);
+			    msg("%sが命中した！", name);
 			else
-			    msg("you are hit by the %s", name);
+			    msg("%sがあなたに直撃した！", name);
 		    }
 		    else
-			msg("the %s whizzes by you", name);
+			msg("%sはあなたをかすめて飛び去った", name);
 		}
 		mvaddch(pos.y, pos.x, dirch);
 		refresh();
@@ -426,6 +426,6 @@ charge_str(THING *obj)
     else if (terse)
 	sprintf(buf, " [%d]", obj->o_charges);
     else
-	sprintf(buf, " [%d charges]", obj->o_charges);
+	sprintf(buf, " [残り%d回]", obj->o_charges);
     return buf;
 }

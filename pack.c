@@ -46,7 +46,7 @@ add_pack(THING *obj, bool silent)
 	    mvaddch(hero.y, hero.x, floor_ch());
 	    chat(hero.y, hero.x) = (proom->r_flags & ISGONE) ? PASSAGE : FLOOR;
 	    discard(obj);
-	    msg("the scroll turns to dust as you pick it up");
+	    msg("巻物を拾い上げた瞬間、塵となって消えてしまった");
 	    return;
 	}
 
@@ -151,9 +151,7 @@ out:
      */
     if (!silent)
     {
-	if (!terse)
-	    addmsg("you now have ");
-	msg("%s (%c)", inv_name(obj, !terse), obj->o_packch);
+	msg("%s (%c) を手に入れた。", inv_name(obj, !terse), obj->o_packch);
     }
 }
 
@@ -168,11 +166,9 @@ pack_room(bool from_floor, THING *obj)
     if (++inpack > MAXPACK)
     {
 	if (!terse)
-	    addmsg("there's ");
-	addmsg("no room");
-	if (!terse)
-	    addmsg(" in your pack");
-	endmsg();
+	    msg("荷物がいっぱいで持てない。");
+	else
+	    msg("空きがない。");
 	if (from_floor)
 	    move_msg(obj);
 	inpack = MAXPACK;
@@ -275,11 +271,11 @@ inventory(THING *list, int type)
     if (n_objs == 0)
     {
 	if (terse)
-	    msg(type == 0 ? "empty handed" :
-			    "nothing appropriate");
+	    msg(type == 0 ? "何も持っていない" :
+			    "適当なものがない");
 	else
-	    msg(type == 0 ? "you are empty handed" :
-			    "you don't have anything appropriate");
+	    msg(type == 0 ? "何も持っていません" :
+			    "適当なものを持っていません");
 	return FALSE;
     }
     end_line();
@@ -338,9 +334,7 @@ pick_up(char ch)
 void
 move_msg(THING *obj)
 {
-    if (!terse)
-	addmsg("you ");
-    msg("moved onto %s", inv_name(obj, TRUE));
+    msg("%sの上に移動した。", inv_name(obj, TRUE));
 }
 
 /*
@@ -355,12 +349,12 @@ picky_inven()
     char mch;
 
     if (pack == NULL)
-	msg("you aren't carrying anything");
+	msg("何も持っていません");
     else if (next(pack) == NULL)
 	msg("a) %s", inv_name(pack, FALSE));
     else
     {
-	msg(terse ? "item: " : "which item do you wish to inventory: ");
+	msg(terse ? "アイテム: " : "どのアイテムを調べますか: ");
 	mpos = 0;
 	if ((mch = readchar()) == ESCAPE)
 	{
@@ -373,7 +367,7 @@ picky_inven()
 		msg("%c) %s", mch, inv_name(obj, FALSE));
 		return;
 	    }
-	msg("'%s' not in pack", unctrl(mch));
+	msg("'%s' は荷物にありません", unctrl(mch));
     }
 }
 
@@ -388,22 +382,20 @@ get_item(char *purpose, int type)
     char ch;
 
     if (pack == NULL)
-	msg("you aren't carrying anything");
+	msg("何も持っていません");
     else if (again)
 	if (last_pick)
 	    return last_pick;
 	else
-	    msg("you ran out");
+	    msg("使い果たした");
     else
     {
 	for (;;)
 	{
 	    if (!terse)
-		addmsg("which object do you want to ");
-	    addmsg(purpose);
-	    if (terse)
-		addmsg(" what");
-	    msg("? (* for list): ");
+		msg("どのアイテムを%sますか？ (* で一覧): ", purpose);
+	    else
+		msg("どれを%sますか？ (* で一覧): ", purpose);
 	    ch = readchar();
 	    mpos = 0;
 	    /*
@@ -432,7 +424,7 @@ get_item(char *purpose, int type)
 		    break;
 	    if (obj == NULL)
 	    {
-		msg("'%s' is not a valid item",unctrl(ch));
+		msg("'%s' は有効なアイテムではありません", unctrl(ch));
 		continue;
 	    }
 	    else 
@@ -456,8 +448,9 @@ money(int value)
     if (value > 0)
     {
 	if (!terse)
-	    addmsg("you found ");
-	msg("%d gold pieces", value);
+	    msg("%d ゴールドを見つけた！", value);
+	else
+	    msg("%d ゴールド", value);
     }
 }
 

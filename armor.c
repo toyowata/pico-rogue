@@ -22,29 +22,27 @@ wear()
     register THING *obj;
     register char *sp;
 
-    if ((obj = get_item("wear", ARMOR)) == NULL)
+    if ((obj = get_item("身につける", ARMOR)) == NULL)
 	return;
     if (cur_armor != NULL)
     {
-	addmsg("you are already wearing some");
 	if (!terse)
-	    addmsg(".  You'll have to take it off first");
-	endmsg();
+	    msg("すでに鎧を着ている。先に脱がなければならない。");
+	else
+	    msg("すでに鎧を着ている。");
 	after = FALSE;
 	return;
     }
     if (obj->o_type != ARMOR)
     {
-	msg("you can't wear that");
+	msg("それは身につけられない。");
 	return;
     }
     waste_time();
     obj->o_flags |= ISKNOW;
     sp = inv_name(obj, TRUE);
     cur_armor = obj;
-    if (!terse)
-	addmsg("you are now ");
-    msg("wearing %s", sp);
+    msg("%s を身につけた。", sp);
 }
 
 /*
@@ -59,20 +57,13 @@ take_off()
     if ((obj = cur_armor) == NULL)
     {
 	after = FALSE;
-	if (terse)
-		msg("not wearing armor");
-	else
-		msg("you aren't wearing any armor");
+	msg("鎧を着ていない。");
 	return;
     }
     if (!dropcheck(cur_armor))
 	return;
     cur_armor = NULL;
-    if (terse)
-	addmsg("was");
-    else
-	addmsg("you used to be");
-    msg(" wearing %c) %s", obj->o_packch, inv_name(obj, TRUE));
+    msg("%c) %s を脱いだ。", obj->o_packch, inv_name(obj, TRUE));
 }
 
 /*

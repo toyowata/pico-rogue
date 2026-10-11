@@ -84,7 +84,7 @@ void
 unconfuse()
 {
     player.t_flags &= ~ISHUH;
-    msg("you feel less %s now", choose_str("trippy", "confused"));
+    msg("混乱が解けた。");
 }
 
 /*
@@ -115,8 +115,7 @@ sight()
 	player.t_flags &= ~ISBLIND;
 	if (!(proom->r_flags & ISGONE))
 	    enter_room(&hero);
-	msg(choose_str("far out!  Everything is all cosmic again",
-		       "the veil of darkness lifts"));
+	msg("視界が元に戻った。");
     }
 }
 
@@ -128,7 +127,7 @@ void
 nohaste()
 {
     player.t_flags &= ~ISHASTE;
-    msg("you feel yourself slowing down");
+    msg("加速状態が切れ、元の速度に戻った。");
 }
 
 /*
@@ -152,10 +151,7 @@ stomach()
 	    return;
 	no_command += rnd(8) + 4;
 	hungry_state = 3;
-	if (!terse)
-	    addmsg(choose_str("the munchies overpower your motor capabilities.  ",
-			      "you feel too weak from lack of food.  "));
-	msg(choose_str("You freak out", "You faint"));
+	msg("空腹のあまり気絶してしまった！");
     }
     else
     {
@@ -165,17 +161,12 @@ stomach()
 	if (food_left < MORETIME && oldfood >= MORETIME)
 	{
 	    hungry_state = 2;
-	    msg(choose_str("the munchies are interfering with your motor capabilites",
-			   "you are starting to feel weak"));
+	    msg("空腹で力が出なくなってきた。");
 	}
 	else if (food_left < 2 * MORETIME && oldfood >= 2 * MORETIME)
 	{
 	    hungry_state = 1;
-	    if (terse)
-		msg(choose_str("getting the munchies", "getting hungry"));
-	    else
-		msg(choose_str("you are getting the munchies",
-			       "you are starting to get hungry"));
+	    msg("お腹が空いてきた。");
 	}
     }
     if (hungry_state != orig_hungry) { 
@@ -290,6 +281,5 @@ void
 land()
 {
     player.t_flags &= ~ISLEVIT;
-    msg(choose_str("bummer!  You've hit the ground",
-		   "you float gently to the ground"));
+    msg("ふわりと地面に着地した。");
 }

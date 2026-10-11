@@ -1,8 +1,9 @@
 /*
- * curses.h - Lightweight Curses-compatible layer for Raspberry Pi Pico
+ * curses.h - Lightweight Curses-compatible layer with UTF-8 support for Raspberry Pi Pico
  *
  * Implements the minimal subset of curses needed for Rogue 5.4.
  * Outputs ANSI/VT100 escape sequences over USB Serial (stdio).
+ * Supports multi-byte UTF-8 full-width Japanese characters (2 columns).
  */
 
 #ifndef _CURSES_H_
@@ -35,6 +36,13 @@ typedef uint16_t chtype;
 #define A_STANDOUT  0x0100
 #define A_CHARTEXT  0x00ff
 
+/* Screen cell supporting UTF-8 multi-byte characters */
+typedef struct {
+    char ch[5];      /* UTF-8 character string (null-terminated, up to 4 bytes) */
+    uint8_t width;   /* 0: trail cell of wide char, 1: half-width, 2: full-width leading */
+    uint16_t attrs;  /* Attributes (e.g. A_STANDOUT) */
+} Cell;
+
 /* Window structure representing a 24x80 text grid */
 typedef struct _win_st {
     int _cury;
@@ -45,7 +53,7 @@ typedef struct _win_st {
     int _begx;
     int _flags;
     chtype _attrs;
-    chtype _lines[LINES][COLS];
+    Cell _lines[LINES][COLS];
 } WINDOW;
 
 extern WINDOW *stdscr;

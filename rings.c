@@ -24,7 +24,7 @@ ring_on()
     THING *obj;
     int ring;
 
-    obj = get_item("put on", RING);
+    obj = get_item("はめる", RING);
     /*
      * Make certain that it is somethings that we want to wear
      */
@@ -33,9 +33,9 @@ ring_on()
     if (obj->o_type != RING)
     {
 	if (!terse)
-	    msg("it would be difficult to wrap that around a finger");
+	    msg("それを指にはめるのは難しそうだ。");
 	else
-	    msg("not a ring");
+	    msg("指輪ではない。");
 	return;
     }
 
@@ -57,9 +57,9 @@ ring_on()
     else
     {
 	if (!terse)
-	    msg("you already have a ring on each hand");
+	    msg("すでに両手の指に指輪をはめている。");
 	else
-	    msg("wearing two");
+	    msg("2個はめている。");
 	return;
     }
     cur_ring[ring] = obj;
@@ -80,9 +80,7 @@ ring_on()
 	    break;
     }
 
-    if (!terse)
-	addmsg("you are now wearing ");
-    msg("%s (%c)", inv_name(obj, TRUE), obj->o_packch);
+    msg("%s (%c) をはめた。", inv_name(obj, TRUE), obj->o_packch);
 }
 
 /*
@@ -99,9 +97,9 @@ ring_off()
     if (cur_ring[LEFT] == NULL && cur_ring[RIGHT] == NULL)
     {
 	if (terse)
-	    msg("no rings");
+	    msg("指輪なし");
 	else
-	    msg("you aren't wearing any rings");
+	    msg("指輪をはめていない。");
 	return;
     }
     else if (cur_ring[LEFT] == NULL)
@@ -115,11 +113,11 @@ ring_off()
     obj = cur_ring[ring];
     if (obj == NULL)
     {
-	msg("not wearing such a ring");
+	msg("そんな指輪ははめていない。");
 	return;
     }
     if (dropcheck(obj))
-	msg("was wearing %s(%c)", inv_name(obj, TRUE), obj->o_packch);
+	msg("%s (%c) をはずした。", inv_name(obj, TRUE), obj->o_packch);
 }
 
 /*
@@ -134,9 +132,9 @@ gethand()
     for (;;)
     {
 	if (terse)
-	    msg("left or right ring? ");
+	    msg("左(L)か右(R)か？ ");
 	else
-	    msg("left hand or right hand? ");
+	    msg("左手(L)か、右手(R)か？ ");
 	if ((c = readchar()) == ESCAPE)
 	    return -1;
 	mpos = 0;
@@ -145,9 +143,9 @@ gethand()
 	else if (c == 'r' || c == 'R')
 	    return RIGHT;
 	if (terse)
-	    msg("L or R");
+	    msg("L または R");
 	else
-	    msg("please type L or R");
+	    msg("L または R を入力してください");
     }
 }
 

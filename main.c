@@ -123,7 +123,7 @@ main(int argc, char **argv, char **envp)
 	printf("Hello %s, welcome to dungeon #%d", whoami, dnum);
     else
 #endif
-	printf("Hello %s, just a moment while I dig the dungeon...", whoami);
+    printf("ようこそ %s、ダンジョンを掘削中ですので少々お待ちください...", whoami);
     fflush(stdout);
 
     initscr();				/* Start up cursor package */
@@ -140,7 +140,7 @@ main(int argc, char **argv, char **envp)
      */
     if (LINES < NUMLINES || COLS < NUMCOLS)
     {
-	printf("\nSorry, the screen must be at least %dx%d\n", NUMLINES, NUMCOLS);
+	printf("\n申し訳ありません。画面サイズは少なくとも %dx%d 必要です。\n", NUMLINES, NUMCOLS);
 	endwin();
 	my_exit(1);
     }
@@ -175,7 +175,7 @@ void
 endit(int sig)
 {
     NOOP(sig);
-    fatal("Okay, bye bye!\n");
+    fatal("それでは、さようなら！\n");
 }
 
 /*
@@ -405,7 +405,7 @@ my_exit(int st)
 {
     resetltchars();
 #ifdef PICO_BUILD
-    printf("\r\n\r\n=== Game Over ===\r\nPress [SPACE] to restart...\r\n");
+    printf("\r\n\r\n=== ゲームオーバー ===\r\n[スペース] キーを押すと再スタートします...\r\n");
     fflush(stdout);
     while (getch() != ' ') {
         sleep_ms(50);

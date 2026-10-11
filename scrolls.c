@@ -32,15 +32,15 @@ read_scroll()
     THING *orig_obj;
     static coord mp;
 
-    obj = get_item("read", SCROLL);
+    obj = get_item("読む", SCROLL);
     if (obj == NULL)
 	return;
     if (obj->o_type != SCROLL)
     {
 	if (!terse)
-	    msg("there is nothing on it to read");
+	    msg("そこには読むべきものは何も書かれていない");
 	else
-	    msg("nothing to read");
+	    msg("読めない");
 	return;
     }
     /*
@@ -62,13 +62,13 @@ read_scroll()
 	     * Scroll of monster confusion.  Give him that power.
 	     */
 	    player.t_flags |= CANHUH;
-	    msg("your hands begin to glow %s", pick_color("red"));
+	    msg("両手が%s色に光り始めた！", pick_color("赤"));
 	when S_ARMOR:
 	    if (cur_armor != NULL)
 	    {
 		cur_armor->o_arm--;
 		cur_armor->o_flags &= ~ISCURSED;
-		msg("your armor glows %s for a moment", pick_color("silver"));
+		msg("鎧が一瞬%s色に輝いた！", pick_color("銀"));
 	    }
 	when S_HOLD:
 	    /*
@@ -89,17 +89,14 @@ read_scroll()
 			    }
 	    if (ch)
 	    {
-		addmsg("the monster");
 		if (ch > 1)
-		    addmsg("s around you");
-		addmsg(" freeze");
-		if (ch == 1)
-		    addmsg("s");
-		endmsg();
+		    msg("周りのモンスターたちが金縛りにあった！");
+		else
+		    msg("モンスターが金縛りにあった！");
 		scr_info[S_HOLD].oi_know = TRUE;
 	    }
 	    else
-		msg("you feel a strange sense of loss");
+		msg("何かを失ったような奇妙な感覚がした…");
 	when S_SLEEP:
 	    /*
 	     * Scroll which makes you fall asleep
@@ -107,7 +104,7 @@ read_scroll()
 	    scr_info[S_SLEEP].oi_know = TRUE;
 	    no_command += rnd(SLEEPTIME) + 4;
 	    player.t_flags &= ~ISRUN;
-	    msg("you fall asleep");
+	    msg("あなたは眠りに落ちてしまった…");
 	when S_CREATE:
 	    /*
 	     * Create a monster:
@@ -137,7 +134,7 @@ read_scroll()
 			}
 		    }
 	    if (i == 0)
-		msg("you hear a faint cry of anguish in the distance");
+		msg("遠くでかすかな苦痛の叫び声が聞こえた…");
 	    else
 	    {
 		obj = new_item();
@@ -155,7 +152,7 @@ read_scroll()
 	     * Identify, let him figure something out
 	     */
 	    scr_info[obj->o_which].oi_know = TRUE;
-	    msg("this scroll is an %s scroll", scr_info[obj->o_which].oi_name);
+	    msg("この巻物は『%s』だった", scr_info[obj->o_which].oi_name);
 	    whatis(TRUE, id_type[obj->o_which]);
 	}
 	when S_MAP:
@@ -163,7 +160,7 @@ read_scroll()
 	     * Scroll of magic mapping.
 	     */
 	    scr_info[S_MAP].oi_know = TRUE;
-	    msg("oh, now this scroll has a map on it");
+	    msg("おや、この巻物には地図が描かれている！");
 	    /*
 	     * take all the things we want to keep hidden out of the window
 	     */
@@ -243,10 +240,10 @@ def:
 	    if (ch)
 	    {
 		scr_info[S_FDET].oi_know = TRUE;
-		show_win("Your nose tingles and you smell food.--More--");
+		show_win("鼻がムズムズして食べ物の匂いがしてきた！--続く--");
 	    }
 	    else
-		msg("your nose tingles");
+		msg("鼻がムズムズした");
 	when S_TELEP:
 	    /*
 	     * Scroll of teleportation:
@@ -260,7 +257,7 @@ def:
 	    }
 	when S_ENCH:
 	    if (cur_weapon == NULL || cur_weapon->o_type != WEAPON)
-		msg("you feel a strange sense of loss");
+		msg("何かを失ったような奇妙な感覚がした…");
 	    else
 	    {
 		cur_weapon->o_flags &= ~ISCURSED;
@@ -268,41 +265,41 @@ def:
 		    cur_weapon->o_hplus++;
 		else
 		    cur_weapon->o_dplus++;
-		msg("your %s glows %s for a moment",
-		    weap_info[cur_weapon->o_which].oi_name, pick_color("blue"));
+		msg("%sが一瞬%s色に輝いた！",
+		    weap_info[cur_weapon->o_which].oi_name, pick_color("青"));
 	    }
 	when S_SCARE:
 	    /*
 	     * Reading it is a mistake and produces laughter at her
 	     * poor boo boo.
 	     */
-	    msg("you hear maniacal laughter in the distance");
+	    msg("遠くで狂気じみた笑い声が聞こえた…");
 	when S_REMOVE:
 	    uncurse(cur_armor);
 	    uncurse(cur_weapon);
 	    uncurse(cur_ring[LEFT]);
 	    uncurse(cur_ring[RIGHT]);
-	    msg(choose_str("you feel in touch with the Universal Onenes",
-			   "you feel as if somebody is watching over you"));
+	    msg(choose_str("宇宙との一体感を感じる…",
+			   "誰かに見守られているような気がする…"));
 	when S_AGGR:
 	    /*
 	     * This scroll aggravates all the monsters on the current
 	     * level and sets them running towards the hero
 	     */
 	    aggravate();
-	    msg("you hear a high pitched humming noise");
+	    msg("甲高い唸り音が鳴り響いた！");
 	when S_PROTECT:
 	    if (cur_armor != NULL)
 	    {
 		cur_armor->o_flags |= ISPROT;
-		msg("your armor is covered by a shimmering %s shield",
-		    pick_color("gold"));
+		msg("鎧が光り輝く%sのオーラに包まれた！",
+		    pick_color("黄金"));
 	    }
 	    else
-		msg("you feel a strange sense of loss");
+		msg("何かを失ったような奇妙な感覚がした…");
 #ifdef MASTER
 	otherwise:
-	    msg("what a puzzling scroll!");
+	    msg("不思議な巻物だ！");
 	    return;
 #endif
     }

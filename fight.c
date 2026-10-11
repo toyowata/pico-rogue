@@ -94,8 +94,8 @@ fight(coord *mp, THING *weap, bool thrown)
 	    ch = (char)(rnd(26) + 'A');
 	    mvaddch(tp->t_pos.y, tp->t_pos.x, ch);
 	}
-	msg(choose_str("heavy!  That's a nasty critter!",
-		       "wait!  That's a xeroc!"));
+	msg(choose_str("うわっ！ こいつはとんでもない化け物だ！",
+		       "待て！ ゼロックだ！"));
 	if (!thrown)
 	    return FALSE;
     }
@@ -116,12 +116,12 @@ fight(coord *mp, THING *weap, bool thrown)
 	    player.t_flags &= ~CANHUH;
 	    endmsg();
 	    has_hit = FALSE;
-	    msg("your hands stop glowing %s", pick_color("red"));
+	    msg("両手の%s色の光が消えた", pick_color("赤"));
 	}
 	if (tp->t_stats.s_hpt <= 0)
 	    killed(tp, TRUE);
 	else if (did_hit && !on(player, ISBLIND))
-	    msg("%s appears confused", mname);
+	    msg("%sは混乱しているようだ！", mname);
 	did_hit = TRUE;
     }
     else
@@ -167,7 +167,7 @@ attack(THING *mp)
 	if (mp->t_type != 'I')
 	{
 	    if (has_hit)
-		addmsg(".  ");
+		addmsg(" ");
 	    hit(mname, (char *) NULL, FALSE);
 	}
 	else
@@ -199,10 +199,10 @@ attack(THING *mp)
 		    player.t_flags &= ~ISRUN;
 		    if (!no_command)
 		    {
-			addmsg("you are frozen");
 			if (!terse)
-			    addmsg(" by the %s", mname);
-			endmsg();
+			    msg("%sによって凍りづけにされた！", mname);
+			else
+			    msg("体が凍りついた！");
 		    }
 		    no_command += rnd(2) + 2;
 		    if (no_command > BORE_LEVEL)
@@ -217,16 +217,16 @@ attack(THING *mp)
 			{
 			    chg_str(-1);
 			    if (!terse)
-				msg("you feel a bite in your leg and now feel weaker");
+				msg("足を噛まれて力が抜けていく！");
 			    else
-				msg("a bite has weakened you");
+				msg("毒で体が弱まった");
 			}
 			else if (!to_death)
 			{
 			    if (!terse)
-				msg("a bite momentarily weakens you");
+				msg("噛まれたが一瞬力が抜けただけだった");
 			    else
-				msg("bite has no effect");
+				msg("毒は効かなかった");
 			}
 		    }
 		when 'W':
@@ -260,7 +260,7 @@ attack(THING *mp)
 			    pstats.s_hpt = 1;
 			if (max_hp <= 0)
 			    death(mp->t_type);
-			msg("you suddenly feel weaker");
+			msg("突然体が弱くなった気がする！");
 		    }
 		when 'F':
 		    /*
@@ -286,7 +286,7 @@ attack(THING *mp)
 		    remove_mon(&mp->t_pos, mp, FALSE);
                     mp=NULL;
 		    if (purse != lastpurse)
-			msg("your purse feels lighter");
+			msg("財布が軽くなった！");
 		}
 		when 'N':
 		{
@@ -308,7 +308,7 @@ attack(THING *mp)
 			remove_mon(&mp->t_pos, moat(mp->t_pos.y, mp->t_pos.x), FALSE);
                         mp=NULL;
 			leave_pack(steal, FALSE, FALSE);
-			msg("she stole %s!", inv_name(steal, TRUE));
+			msg("%sを盗まれた！", inv_name(steal, TRUE));
 			discard(steal);
 		    }
 		}
@@ -320,7 +320,7 @@ attack(THING *mp)
     {
 	if (has_hit)
 	{
-	    addmsg(".  ");
+	    addmsg(" ");
 	    has_hit = FALSE;
 	}
 	if (mp->t_type == 'F')
@@ -350,10 +350,9 @@ set_mname(THING *tp)
 {
     int ch;
     char *mname;
-    static char tbuf[MAXSTR] = { 't', 'h', 'e', ' ' };
 
     if (!see_monst(tp) && !on(player, SEEMONST))
-	return (terse ? "it" : "something");
+	return (terse ? "それ" : "何か");
     else if (on(player, ISHALU))
     {
 	move(tp->t_pos.y, tp->t_pos.x);
@@ -366,8 +365,7 @@ set_mname(THING *tp)
     }
     else
 	mname = monsters[tp->t_type - 'A'].m_name;
-    strcpy(&tbuf[4], mname);
-    return tbuf;
+    return mname;
 }
 
 /*
@@ -485,14 +483,11 @@ char *
 prname(char *mname, bool upper)
 {
     static char tbuf[MAXSTR];
-
-    *tbuf = '\0';
+    (void)upper;
     if (mname == 0)
-	strcpy(tbuf, "you"); 
+	strcpy(tbuf, "あなた"); 
     else
 	strcpy(tbuf, mname);
-    if (upper)
-	*tbuf = (char) toupper(*tbuf);
     return tbuf;
 }
 
@@ -506,10 +501,9 @@ thunk(THING *weap, char *mname, bool noend)
     if (to_death)
 	return;
     if (weap->o_type == WEAPON)
-	addmsg("the %s hits ", weap_info[weap->o_which].oi_name);
+	addmsg("%sが%sに命中した！", weap_info[weap->o_which].oi_name, mname);
     else
-	addmsg("you hit ");
-    addmsg("%s", mname);
+	addmsg("%sに命中した！", mname);
     if (!noend)
 	endmsg();
 }
@@ -522,25 +516,12 @@ thunk(THING *weap, char *mname, bool noend)
 void
 hit(char *er, char *ee, bool noend)
 {
-    int i;
-    char *s;
-    extern char *h_names[];
-
     if (to_death)
 	return;
-    addmsg(prname(er, TRUE));
-    if (terse)
-	s = " hit";
+    if (er == NULL)
+	addmsg("あなたの攻撃が%sに命中した！", prname(ee, FALSE));
     else
-    {
-	i = rnd(4);
-	if (er != NULL)
-	    i += 4;
-	s = h_names[i];
-    }
-    addmsg(s);
-    if (!terse)
-	addmsg(prname(ee, FALSE));
+	addmsg("%sの攻撃が命中した！", prname(er, TRUE));
     if (!noend)
 	endmsg();
 }
@@ -552,21 +533,12 @@ hit(char *er, char *ee, bool noend)
 void
 miss(char *er, char *ee, bool noend)
 {
-    int i;
-    extern char *m_names[];
-
     if (to_death)
 	return;
-    addmsg(prname(er, TRUE));
-    if (terse)
-	i = 0;
+    if (er == NULL)
+	addmsg("あなたの攻撃は%sに当たらなかった。", prname(ee, FALSE));
     else
-	i = rnd(4);
-    if (er != NULL)
-	i += 4;
-    addmsg(m_names[i]);
-    if (!terse)
-	addmsg(" %s", prname(ee, FALSE));
+	addmsg("%sの攻撃は外れた。", prname(er, TRUE));
     if (!noend)
 	endmsg();
 }
@@ -581,10 +553,9 @@ bounce(THING *weap, char *mname, bool noend)
     if (to_death)
 	return;
     if (weap->o_type == WEAPON)
-	addmsg("the %s misses ", weap_info[weap->o_which].oi_name);
+	addmsg("%sは%sに当たらなかった。", weap_info[weap->o_which].oi_name, mname);
     else
-	addmsg("you missed ");
-    addmsg(mname);
+	addmsg("%sには当たらなかった。", mname);
     if (!noend)
 	endmsg();
 }
@@ -666,16 +637,13 @@ killed(THING *tp, bool pr)
     {
 	if (has_hit)
 	{
-	    addmsg(".  Defeated ");
+	    addmsg(" %sを倒した！", mname);
 	    has_hit = FALSE;
 	}
 	else
 	{
-	    if (!terse)
-		addmsg("you have ");
-	    addmsg("defeated ");
+	    msg("%sを倒した！", mname);
 	}
-	msg(mname);
     }
     /*
      * Do adjustments if he went up a level

@@ -279,40 +279,40 @@ be_trapped(coord *tc)
 	case T_DOOR:
 	    level++;
 	    new_level();
-	    msg("you fell into a trap!");
+	    msg("落とし穴に落ちてしまった！");
 	when T_BEAR:
 	    no_move += BEARTIME;
-	    msg("you are caught in a bear trap");
+	    msg("トラバサミに挟まれて動けない！");
         when T_MYST:
             switch(rnd(11))
             {
-                case 0: msg("you are suddenly in a parallel dimension");
-                when 1: msg("the light in here suddenly seems %s", rainbow[rnd(cNCOLORS)]);
-                when 2: msg("you feel a sting in the side of your neck");
-                when 3: msg("multi-colored lines swirl around you, then fade");
-                when 4: msg("a %s light flashes in your eyes", rainbow[rnd(cNCOLORS)]);
-                when 5: msg("a spike shoots past your ear!");
-                when 6: msg("%s sparks dance across your armor", rainbow[rnd(cNCOLORS)]);
-                when 7: msg("you suddenly feel very thirsty");
-                when 8: msg("you feel time speed up suddenly");
-                when 9: msg("time now seems to be going slower");
-                when 10: msg("you pack turns %s!", rainbow[rnd(cNCOLORS)]);
+                case 0: msg("突然、異次元に飛ばされたようだ。");
+                when 1: msg("周囲の光が急に変わった。");
+                when 2: msg("首筋に鋭い痛みを感じた！");
+                when 3: msg("色鮮やかな光の線が渦を巻き、消え去った。");
+                when 4: msg("閃光が目を射抜いた！");
+                when 5: msg("トゲが耳元をかすめて飛んでいった！");
+                when 6: msg("火花が鎧の上を走った！");
+                when 7: msg("突然激しい喉の渇きを感じた。");
+                when 8: msg("時間の流れが急に速くなった気がする。");
+                when 9: msg("時間の流れが急に遅くなった気がする。");
+                when 10: msg("荷物が変色した！");
             }
 	when T_SLEEP:
 	    no_command += SLEEPTIME;
 	    player.t_flags &= ~ISRUN;
-	    msg("a strange white mist envelops you and you fall asleep");
+	    msg("白い霧に包まれ、眠りに落ちてしまった...");
 	when T_ARROW:
 	    if (swing(pstats.s_lvl - 1, pstats.s_arm, 1))
 	    {
 		pstats.s_hpt -= roll(1, 6);
 		if (pstats.s_hpt <= 0)
 		{
-		    msg("an arrow killed you");
+		    msg("飛んできた矢に倒された...");
 		    death('a');
 		}
 		else
-		    msg("oh no! An arrow shot you");
+		    msg("痛っ！ 矢が刺さった！");
 	    }
 	    else
 	    {
@@ -321,7 +321,7 @@ be_trapped(coord *tc)
 		arrow->o_count = 1;
 		arrow->o_pos = hero;
 		fall(arrow, FALSE);
-		msg("an arrow shoots past you");
+		msg("矢がかすめて飛んでいった。");
 	    }
 	when T_TELEP:
 	    /*
@@ -332,21 +332,21 @@ be_trapped(coord *tc)
 	    mvaddch(tc->y, tc->x, TRAP);
 	when T_DART:
 	    if (!swing(pstats.s_lvl+1, pstats.s_arm, 1))
-		msg("a small dart whizzes by your ear and vanishes");
+		msg("毒矢が耳元をかすめて飛んでいった。");
 	    else
 	    {
 		pstats.s_hpt -= roll(1, 4);
 		if (pstats.s_hpt <= 0)
 		{
-		    msg("a poisoned dart killed you");
+		    msg("毒矢を受けて倒れた...");
 		    death('d');
 		}
 		if (!ISWEARING(R_SUSTSTR) && !save(VS_POISON))
 		    chg_str(-1);
-		msg("a small dart just hit you in the shoulder");
+		msg("毒矢が肩に刺さった！");
 	    }
 	when T_RUST:
-	    msg("a gush of water hits you on the head");
+	    msg("頭上から水が降ってきた！");
 	    rust_armor(cur_armor);
     }
     flush_type();

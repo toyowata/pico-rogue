@@ -283,14 +283,14 @@ eat()
 {
     THING *obj;
 
-    if ((obj = get_item("eat", FOOD)) == NULL)
+    if ((obj = get_item("食べる", FOOD)) == NULL)
 	return;
     if (obj->o_type != FOOD)
     {
 	if (!terse)
-	    msg("ugh, you would get ill if you ate that");
+	    msg("うぇっ、そんなものを食べたら病気になってしまう");
 	else
-	    msg("that's Inedible!");
+	    msg("食べられない！");
 	return;
     }
     if (food_left < 0)
@@ -301,16 +301,16 @@ eat()
     if (obj == cur_weapon)
 	cur_weapon = NULL;
     if (obj->o_which == 1)
-	msg("my, that was a yummy %s", fruit);
+	msg("おお、美味しい%sだった", fruit);
     else
 	if (rnd(100) > 70)
 	{
 	    pstats.s_exp++;
-	    msg("%s, this food tastes awful", choose_str("bummer", "yuk"));
+	    msg("うぇっ、この食料はひどい味だ…");
 	    check_level();
 	}
 	else
-	    msg("%s, that tasted good", choose_str("oh, wow", "yum"));
+	    msg("美味しかった！");
     leave_pack(obj, FALSE, FALSE);
 }
 
@@ -335,7 +335,7 @@ check_level()
 	add = roll(i - olevel, 10);
 	max_hp += add;
 	pstats.s_hpt += add;
-	msg("welcome to level %d", i);
+	msg("レベル %d に上がった！", i);
     }
 }
 
@@ -387,7 +387,7 @@ add_haste(bool potion)
 	no_command += rnd(8);
 	player.t_flags &= ~(ISRUN|ISHASTE);
 	extinguish(nohaste);
-	msg("you faint from exhaustion");
+	msg("極度の疲労で気を失ってしまった！");
 	return FALSE;
     }
     else
@@ -447,8 +447,9 @@ is_current(THING *obj)
 	|| obj == cur_ring[RIGHT])
     {
 	if (!terse)
-	    addmsg("That's already ");
-	msg("in use");
+	    msg("それはすでに使用中です。");
+	else
+	    msg("使用中");
 	return TRUE;
     }
     return FALSE;
@@ -475,9 +476,9 @@ get_dir()
     else
     {
 	if (!terse)
-	    msg(prompt = "which direction? ");
+	    msg(prompt = "どの方向？ ");
 	else
-	    prompt = "direction: ";
+	    prompt = "方向: ";
 	do
 	{
 	    gotit = TRUE;
@@ -555,7 +556,7 @@ call_it(struct obj_info *info)
     }
     else if (!info->oi_guess)
     {
-	msg(terse ? "call it: " : "what do you want to call it? ");
+	msg(terse ? "命名: " : "何と名付けますか？ ");
 	if (get_str(prbuf, stdscr) == NORM)
 	{
 	    if (info->oi_guess != NULL)

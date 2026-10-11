@@ -49,7 +49,7 @@ missile(int ydelta, int xdelta)
     /*
      * Get which thing we are hurling
      */
-    if ((obj = get_item("throw", WEAPON)) == NULL)
+    if ((obj = get_item("投げる", WEAPON)) == NULL)
 	return;
     if (!dropcheck(obj) || is_current(obj))
 	return;
@@ -146,7 +146,7 @@ fall(THING *obj, bool pr)
 	    endmsg();
 	    has_hit = FALSE;
 	}
-	msg("the %s vanishes as it hits the ground",
+	msg("地面に落ちた瞬間、%sは消え去った",
 	    weap_info[obj->o_which].oi_name);
     }
     discard(obj);
@@ -235,7 +235,7 @@ wield()
 	return;
     }
     cur_weapon = oweapon;
-    if ((obj = get_item("wield", WEAPON)) == NULL)
+    if ((obj = get_item("構える", WEAPON)) == NULL)
     {
 bad:
 	after = FALSE;
@@ -244,7 +244,7 @@ bad:
 
     if (obj->o_type == ARMOR)
     {
-	msg("you can't wield armor");
+	msg("鎧を武器として構えることはできない");
 	goto bad;
     }
     if (is_current(obj))
@@ -252,9 +252,7 @@ bad:
 
     sp = inv_name(obj, TRUE);
     cur_weapon = obj;
-    if (!terse)
-	addmsg("you are now ");
-    msg("wielding %s (%c)", sp, obj->o_packch);
+    msg("%s (%c) を構えた。", sp, obj->o_packch);
 }
 
 /*
