@@ -403,7 +403,11 @@ over:
 	printf("The score file is very busy.  Do you want to wait longer\n");
 	printf("for it to become free so your score can get posted?\n");
 	printf("If so, type \"y\"\n");
+#ifdef PICO_BUILD
+	(void) md_gets(prbuf, MAXSTR);
+#else
 	(void) fgets(prbuf, MAXSTR, stdin);
+#endif
 	if (prbuf[0] == 'y')
 	    for (;;)
 	    {

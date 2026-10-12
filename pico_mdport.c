@@ -47,6 +47,33 @@ int md_readchar(void) {
     return getch();
 }
 
+/*
+ * fgets() replacement for raw USB serial: terminals send CR for Enter and
+ * pico stdio does not translate it, so fgets() on stdin would never return.
+ */
+char *md_gets(char *buf, int size) {
+    int len = 0;
+    for (;;) {
+        int c = getch();            /* maps CR to '\n' */
+        if (c == '\n') {
+            printf("\r\n");
+            break;
+        }
+        if (c == '\b') {
+            if (len > 0) {
+                len--;
+                printf("\b \b");
+            }
+        } else if (c >= 32 && c <= 126 && len < size - 1) {
+            buf[len++] = (char)c;
+            putchar(c);
+        }
+        fflush(stdout);
+    }
+    buf[len] = '\0';
+    return buf;
+}
+
 void md_sleep(int s) {
     sleep_ms(s * 1000);
 }

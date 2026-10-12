@@ -11,7 +11,6 @@
 
 static WINDOW _stdscr_inst;
 static WINDOW _curscr_inst;
-static WINDOW _hw_inst;
 
 WINDOW *stdscr = &_stdscr_inst;
 WINDOW *curscr = &_curscr_inst;
@@ -41,46 +40,79 @@ static void init_window_struct(WINDOW *win, int nlines, int ncols, int begy, int
     }
 }
 
-static void utf8_char_info(const char *s, int *byte_len, int *char_width) {
-    unsigned char c = (unsigned char)*s;
-    if (c < 0x80) {
-        *byte_len = 1;
-        *char_width = 1;
-        return;
-    }
-    if ((c & 0xE0) == 0xC0) {
-        *byte_len = 2;
-        *char_width = 1;
-        return;
-    }
-    if ((c & 0xF0) == 0xE0) {
-        *byte_len = 3;
+/*
+ * Return the byte length of the UTF-8 character at s and store its display
+ * width (1 or 2 columns) in *char_width.  Malformed or truncated sequences
+ * are treated as a single 1-column byte so callers never skip past the NUL.
+ */
+int utf8_char_info(const char *s, int *char_width) {
+    const unsigned char *u = (const unsigned char *)s;
+    int blen, width;
+
+    if (u[0] < 0x80) {
+        blen = 1;
+        width = 1;
+    } else if ((u[0] & 0xE0) == 0xC0) {
+        blen = 2;
+        width = 1;
+    } else if ((u[0] & 0xF0) == 0xE0) {
+        blen = 3;
         // Half-width Katakana: U+FF61 - U+FF9F (0xEF 0xBD 0xA1 - 0xEF 0xBE 0x9F)
-        if (c == 0xEF && (unsigned char)s[1] == 0xBD && (unsigned char)s[2] >= 0xA1) {
-            *char_width = 1;
-        } else if (c == 0xEF && (unsigned char)s[1] == 0xBE && (unsigned char)s[2] <= 0x9F) {
-            *char_width = 1;
+        if (u[0] == 0xEF && ((u[1] == 0xBD && u[2] >= 0xA1) || (u[1] == 0xBE && u[2] <= 0x9F))) {
+            width = 1;
         } else {
             // Kanji, Hiragana, Katakana, Full-width symbols
-            *char_width = 2;
+            width = 2;
         }
-        return;
+    } else if ((u[0] & 0xF8) == 0xF0) {
+        blen = 4;
+        width = 2;
+    } else {
+        blen = 1;
+        width = 1;
     }
-    if ((c & 0xF8) == 0xF0) {
-        *byte_len = 4;
-        *char_width = 2;
-        return;
+
+    for (int i = 1; i < blen; i++) {
+        if ((u[i] & 0xC0) != 0x80) {
+            blen = 1;
+            width = 1;
+            break;
+        }
     }
-    // Fallback for unexpected byte
-    *byte_len = 1;
-    *char_width = 1;
+
+    *char_width = width;
+    return blen;
+}
+
+/*
+ * Return the display width in columns of a UTF-8 string.
+ */
+int utf8_strwidth(const char *s) {
+    int w = 0;
+    while (*s) {
+        int cw;
+        s += utf8_char_info(s, &cw);
+        w += cw;
+    }
+    return w;
+}
+
+/*
+ * If cell (y, x) is one half of a full-width character, blank the other half
+ * so that overwriting it never leaves a stale leading or trail cell behind.
+ */
+static void split_wide_at(WINDOW *win, int y, int x) {
+    Cell *cell = &win->_lines[y][x];
+    if (cell->width == 0 && x > 0 && win->_lines[y][x - 1].width == 2) {
+        set_empty_cell(&win->_lines[y][x - 1]);
+    } else if (cell->width == 2 && x + 1 < COLS && win->_lines[y][x + 1].width == 0) {
+        set_empty_cell(&win->_lines[y][x + 1]);
+    }
 }
 
 WINDOW *initscr(void) {
     init_window_struct(stdscr, LINES, COLS, 0, 0);
     init_window_struct(curscr, LINES, COLS, 0, 0);
-    init_window_struct(&_hw_inst, LINES, COLS, 0, 0);
-    hw = &_hw_inst;
 
     // Invalidate curscr buffer so initial refresh draws everything
     for (int y = 0; y < LINES; y++) {
@@ -119,7 +151,7 @@ WINDOW *subwin(WINDOW *orig, int nlines, int ncols, int begy, int begx) {
 }
 
 int delwin(WINDOW *win) {
-    if (win && win != stdscr && win != curscr && win != &_hw_inst) {
+    if (win && win != stdscr && win != curscr) {
         free(win);
     }
     return OK;
@@ -168,6 +200,7 @@ int waddch(WINDOW *win, chtype ch) {
     }
 
     if (win->_cury >= 0 && win->_cury < LINES && win->_curx >= 0 && win->_curx < COLS) {
+        split_wide_at(win, win->_cury, win->_curx);
         Cell *cell = &win->_lines[win->_cury][win->_curx];
         cell->ch[0] = c;
         cell->ch[1] = '\0';
@@ -208,8 +241,8 @@ int waddstr(WINDOW *win, const char *str) {
             waddch(win, c);
             p++;
         } else {
-            int blen = 1, width = 2;
-            utf8_char_info(p, &blen, &width);
+            int width;
+            int blen = utf8_char_info(p, &width);
 
             if (win->_curx + width > COLS) {
                 win->_curx = 0;
@@ -217,6 +250,11 @@ int waddstr(WINDOW *win, const char *str) {
             }
 
             if (win->_cury < LINES) {
+                split_wide_at(win, win->_cury, win->_curx);
+                if (width == 2) {
+                    split_wide_at(win, win->_cury, win->_curx + 1);
+                }
+
                 // Leading cell
                 Cell *c1 = &win->_lines[win->_cury][win->_curx];
                 memset(c1->ch, 0, sizeof(c1->ch));
@@ -332,6 +370,7 @@ int wclrtoeol(WINDOW *win) {
     if (!win) win = stdscr;
     int y = win->_cury;
     if (y >= 0 && y < LINES) {
+        split_wide_at(win, y, win->_curx);
         for (int x = win->_curx; x < COLS; x++) {
             set_empty_cell(&win->_lines[y][x]);
         }
@@ -479,15 +518,15 @@ int wrefresh(WINDOW *win) {
                     printf(in_standout ? "\033[7m" : "\033[0m");
                 }
 
-                if (wc->width == 2) {
+                if (wc->ch[1] != '\0') {
+                    // Multi-byte UTF-8 character (full-width or half-width Katakana etc.)
                     printf("%s", wc->ch);
-                    last_cursor_x += 2;
                 } else {
-                    char c = wc->ch[0];
+                    unsigned char c = (unsigned char)wc->ch[0];
                     if (c < 32 || c > 126) c = ' ';
                     putchar(c);
-                    last_cursor_x++;
                 }
+                last_cursor_x += wc->width;
 
                 *cc = *wc;
             }
@@ -525,37 +564,38 @@ int getch(void) {
         }
 
         if (c2 == '[') {
-            int c3 = getchar_timeout_us(30000);
-            if (c3 < 0) return 27;
-
-            // Arrow keys: \033[A, \033[B, \033[C, \033[D
-            if (c3 == 'A') return 'k'; // UP -> rogue 'k'
-            if (c3 == 'B') return 'j'; // DOWN -> rogue 'j'
-            if (c3 == 'C') return 'l'; // RIGHT -> rogue 'l'
-            if (c3 == 'D') return 'h'; // LEFT -> rogue 'h'
-            if (c3 == 'H') return 'y'; // HOME -> rogue 'y' (up-left)
-            if (c3 == 'F') return 'b'; // END -> rogue 'b' (down-left)
-
-            // Extended keys: \033[1~, \033[2~, ...
-            if (c3 >= '0' && c3 <= '9') {
-                int c4 = getchar_timeout_us(30000);
-                if (c4 == '~') {
-                    if (c3 == '1' || c3 == '7') return 'y'; // Home -> 'y'
-                    if (c3 == '4' || c3 == '8') return 'b'; // End -> 'b'
-                    if (c3 == '5') return 'u'; // PgUp -> 'u' (up-right)
-                    if (c3 == '6') return 'n'; // PgDn -> 'n' (down-right)
-                    if (c3 == '3') return '\b'; // Del
-                } else if (c4 == ';') {
-                    // Shifted arrows: \033[1;2A etc.
-                    int c5 = getchar_timeout_us(30000);
-                    int c6 = getchar_timeout_us(30000);
-                    if (c5 == '2') {
-                        if (c6 == 'A') return 'K';
-                        if (c6 == 'B') return 'J';
-                        if (c6 == 'C') return 'L';
-                        if (c6 == 'D') return 'H';
-                    }
+            // CSI: parameter bytes (0x30-0x3F) followed by a final byte (0x40-0x7E).
+            // Always consume the whole sequence so no stray byte (e.g. '~' of F5)
+            // is later interpreted as a rogue command.
+            char params[8];
+            int plen = 0;
+            int fin;
+            for (;;) {
+                fin = getchar_timeout_us(30000);
+                if (fin < 0) return 27;
+                if (fin >= 0x30 && fin <= 0x3F) {
+                    if (plen < (int)sizeof(params) - 1) params[plen++] = (char)fin;
+                    continue;
                 }
+                if (fin >= 0x20 && fin <= 0x2F) continue; // intermediate bytes
+                break;
+            }
+            params[plen] = '\0';
+
+            if (fin == 'A' || fin == 'B' || fin == 'C' || fin == 'D' || fin == 'H' || fin == 'F') {
+                static const char plain[] = "kjlhyb";   // UP DOWN RIGHT LEFT HOME END
+                static const char shifted[] = "KJLHYB";
+                int idx = (int)(strchr("ABCDHF", fin) - "ABCDHF");
+                if (plen == 0 || strcmp(params, "1") == 0) return plain[idx];
+                if (strcmp(params, "1;2") == 0) return shifted[idx]; // Shift + key: run
+                return 27;
+            }
+            if (fin == '~') {
+                if (strcmp(params, "1") == 0 || strcmp(params, "7") == 0) return 'y'; // Home
+                if (strcmp(params, "4") == 0 || strcmp(params, "8") == 0) return 'b'; // End
+                if (strcmp(params, "5") == 0) return 'u'; // PgUp -> up-right
+                if (strcmp(params, "6") == 0) return 'n'; // PgDn -> down-right
+                if (strcmp(params, "3") == 0) return '\b'; // Del
             }
             return 27;
         } else if (c2 == 'O') {

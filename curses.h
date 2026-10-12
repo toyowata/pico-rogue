@@ -140,6 +140,10 @@ int wgetch(WINDOW *win);
 int wgetnstr(WINDOW *win, char *str, int maxlen);
 
 char *unctrl(int ch);
+
+/* UTF-8 helpers (pico_curses extension) */
+int utf8_char_info(const char *s, int *char_width);
+int utf8_strwidth(const char *s);
 int baudrate(void);
 int isendwin(void);
 int erasechar(void);

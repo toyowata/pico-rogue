@@ -19,35 +19,6 @@
 static char msgbuf[512];
 static int newpos = 0;
 
-/*
- * utf8_strwidth:
- *	Return the visual display column width of a UTF-8 string
- */
-static int
-utf8_strwidth(const char *s)
-{
-    int w = 0;
-    while (*s) {
-        unsigned char c = (unsigned char)*s;
-        if (c < 0x80) {
-            w++;
-            s++;
-        } else if ((c & 0xe0) == 0xc0) {
-            w += 2;
-            s += 2;
-        } else if ((c & 0xf0) == 0xe0) {
-            w += 2;
-            s += 3;
-        } else if ((c & 0xf8) == 0xf0) {
-            w += 2;
-            s += 4;
-        } else {
-            s++;
-        }
-    }
-    return w;
-}
-
 /* VARARGS1 */
 int
 msg(char *fmt, ...)
@@ -156,7 +127,7 @@ doadd(char *fmt, va_list args)
     vsprintf(buf, fmt, args);
     if (utf8_strwidth(buf) + newpos >= MAXMSG)
         endmsg(); 
-    strcat(msgbuf, buf);
+    strncat(msgbuf, buf, sizeof msgbuf - strlen(msgbuf) - 1);
     newpos = utf8_strwidth(msgbuf);
 }
 

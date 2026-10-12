@@ -430,8 +430,13 @@ badcheck(char *name, struct obj_info *info, int bound)
 	printf("%3d%% %s\n", info->oi_prob, info->oi_name);
     printf("[hit RETURN to continue]");
     fflush(stdout);
+#ifdef PICO_BUILD
+    while (md_readchar() != '\n')
+	continue;
+#else
     while (getchar() != '\n')
 	continue;
+#endif
 }
 #endif
 

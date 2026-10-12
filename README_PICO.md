@@ -74,11 +74,17 @@ make -j
 
 ### macOS / Linux の場合
 
-`picocom`, `minicom`, `screen`, `tio` などを使用できます：
+`tio`, `picocom`, `minicom`, `screen` などを使用できます。
+ゲームオーバー後の再スタートでは Pico が再起動して USB シリアルが一度切断されるため、
+自動で再接続してくれる **`tio` を推奨** します。
 
 ```bash
 # デバイス名の確認 (/dev/tty.usbmodem* など)
 ls /dev/tty.usbmodem*
+
+# tio で接続する場合 (推奨。Pico 再起動後も自動で再接続されます / 終了は Ctrl-T -> Q)
+brew install tio        # macOS の場合
+tio -b 115200 /dev/tty.usbmodemXXXX
 
 # picocom で接続する場合
 picocom -b 115200 /dev/tty.usbmodemXXXX
@@ -86,6 +92,22 @@ picocom -b 115200 /dev/tty.usbmodemXXXX
 # または screen で接続する場合 (終了は Ctrl-A -> K)
 screen /dev/tty.usbmodemXXXX 115200
 ```
+
+> **注意: 再スタート後に端末の表示が崩れる場合**
+>
+> `screen` などは、接続中のデバイスが突然消えると（Pico の再起動による USB 切断）、
+> 端末設定を元に戻さずに終了することがあります。その結果、`ls` などの出力が
+> 階段状にずれて表示されます（改行時に行頭へ戻らない）。
+> その場合は以下のどちらかを入力して Enter を押すと元に戻ります
+> （表示が崩れていても入力は受け付けられます）。
+>
+> ```bash
+> stty sane
+> # または
+> reset
+> ```
+>
+> 再接続するには、Pico の再起動後にもう一度 `screen` などを起動してください。
 
 ### Windows の場合
 
@@ -96,7 +118,9 @@ screen /dev/tty.usbmodemXXXX 115200
 
 ### 接続後の操作
 
-1. シリアルポート接続後、`Rogue 5.4 - Raspberry Pi Pico Port` のウェルカム画面が表示されます。
+1. シリアルポート接続後、`Rogue 5.4 - Raspberry Pi Pico 日本語移植版` のウェルカム画面が表示されます。
+   - Pico は USB シリアル（CDC）にホストが接続されるまで起動待ちになります。UART のみでの起動には対応していません。
+   - 端末の文字コードは **UTF-8** に設定してください。
 2. **スペースキー** または **Enterキー** を押すとダンジョン生成が始まり、ゲームがスタートします。
 
 ---
@@ -127,3 +151,10 @@ screen /dev/tty.usbmodemXXXX 115200
 | `?` | キーヘルプを表示 |
 | `Q` | ゲームを終了してスコア画面へ |
 
+---
+
+## 制限事項
+
+- 名前入力（アイテムへの命名など）は ASCII 文字のみ対応です。日本語の入力はできません。
+- 持ち物一覧の表示方式（オプション `inventory`）の `Overwrite` には対応していません。選択しても `Clear` として動作します。
+- ファイルシステムが無いため、ゲームのセーブ（`S` コマンド）はできません。スコアも保存されません。

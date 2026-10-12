@@ -407,9 +407,8 @@ my_exit(int st)
 #ifdef PICO_BUILD
     printf("\r\n\r\n=== ゲームオーバー ===\r\n[スペース] キーを押すと再スタートします...\r\n");
     fflush(stdout);
-    while (getch() != ' ') {
-        sleep_ms(50);
-    }
+    while (getch() != ' ')
+        continue;
     watchdog_reboot(0, 0, 0);
     while (1) tight_loop_contents();
 #else

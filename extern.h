@@ -196,4 +196,7 @@ void md_onsignal_autosave();
 void md_onsignal_exit();
 void md_onsignal_default();
 int md_issymlink(char *sp);
+#ifdef PICO_BUILD
+char *md_gets(char *buf, int size);
+#endif
 

@@ -4,7 +4,7 @@ if(NOT DEFINED PICO_SDK_PATH)
     if(DEFINED ENV{PICO_SDK_PATH})
         set(PICO_SDK_PATH $ENV{PICO_SDK_PATH})
     else()
-        set(PICO_SDK_PATH "/Users/toyowata/pico/pico-sdk")
+        message(FATAL_ERROR "PICO_SDK_PATH is not set. Pass -DPICO_SDK_PATH=<path> or set the PICO_SDK_PATH environment variable.")
     endif()
 endif()
 
@@ -69,11 +69,6 @@ target_compile_options(pico_rogue PRIVATE
     -Wno-unused-but-set-variable
     -Wno-parentheses
     -Wno-pointer-sign
-    -Wno-implicit-function-declaration
-    -Wno-incompatible-pointer-types
-    -Wno-int-conversion
-    -Wno-format
-    -Wno-return-type
 )
 
 target_link_libraries(pico_rogue

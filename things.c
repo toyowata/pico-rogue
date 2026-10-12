@@ -464,9 +464,14 @@ add_line(char *fmt, char *arg)
 {
     WINDOW *tw, *sw;
     int x, y;
-    char *prompt = "--Press space to continue--";
+    char *prompt = "--スペースキーで続く--";
     static int maxlen = -1;
 
+#ifdef PICO_BUILD
+    /* pico_curses has no real subwin()/mvwin(), so the overlay mode can't work */
+    if (inv_type == INV_OVER)
+	inv_type = INV_CLEAR;
+#endif
     if (line_cnt == 0)
     {
 	    wclear(hw);
@@ -483,9 +488,10 @@ add_line(char *fmt, char *arg)
     else
     {
 	if (maxlen < 0)
-	    maxlen = (int) strlen(prompt);
+	    maxlen = utf8_strwidth(prompt);
 	if (line_cnt >= LINES - 1 || fmt == NULL)
 	{
+#ifndef PICO_BUILD
 	    if (inv_type == INV_OVER && fmt == NULL && !newpage)
 	    {
 		msg("");
@@ -523,6 +529,7 @@ add_line(char *fmt, char *arg)
 		touchwin(stdscr);
 	    }
 	    else
+#endif
 	    {
 		wmove(hw, LINES - 1, 0);
 		waddstr(hw, prompt);
@@ -534,7 +541,7 @@ add_line(char *fmt, char *arg)
 	    }
 	    newpage = TRUE;
 	    line_cnt = 0;
-	    maxlen = (int) strlen(prompt);
+	    maxlen = utf8_strwidth(prompt);
 	}
 	if (fmt != NULL && !(line_cnt == 0 && *fmt == '\0'))
 	{
@@ -578,24 +585,21 @@ end_line()
 char *
 nothing(char type)
 {
-    char *sp, *tystr = NULL;
+    char *tystr = NULL;
 
-    if (terse)
-	sprintf(prbuf, "Nothing");
-    else
-	sprintf(prbuf, "Haven't discovered anything");
-    if (type != '*')
+    if (type == '*')
     {
-	sp = &prbuf[strlen(prbuf)];
-	switch (type)
-	{
-	    case POTION: tystr = "potion";
-	    when SCROLL: tystr = "scroll";
-	    when RING: tystr = "ring";
-	    when STICK: tystr = "stick";
-	}
-	sprintf(sp, " about any %ss", tystr);
+	sprintf(prbuf, terse ? "何もない" : "まだ何も識別していない");
+	return prbuf;
     }
+    switch (type)
+    {
+	case POTION: tystr = "薬";
+	when SCROLL: tystr = "巻物";
+	when RING: tystr = "指輪";
+	when STICK: tystr = "杖";
+    }
+    sprintf(prbuf, terse ? "%s: 何もない" : "%sはまだ何も識別していない", tystr);
     return prbuf;
 }
 

@@ -111,7 +111,7 @@ option()
      * Switch back to original screen
      */
     wmove(hw, LINES - 1, 0);
-    waddstr(hw, "--Press space to continue--");
+    waddstr(hw, "--スペースキーで続く--");
     wrefresh(hw);
     wait_for(' ');
     clearok(curscr, TRUE);

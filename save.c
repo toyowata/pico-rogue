@@ -38,6 +38,10 @@ save_game()
     int c;
     auto char buf[MAXSTR];
 
+#ifdef PICO_BUILD
+    /* no filesystem on the Pico, so saving is not supported */
+    msg("この機種ではセーブできません");
+#else
     /*
      * get file name
      */
@@ -110,6 +114,7 @@ gotfile:
 
     save_file(savef);
     /* NOTREACHED */
+#endif
 }
 
 /*
@@ -169,6 +174,12 @@ restore(char *file, char **envp)
     auto STAT sbuf2;
     int lines, cols;
 
+#ifdef PICO_BUILD
+    /* no filesystem on the Pico, so there is nothing to restore */
+    NOOP(file);
+    NOOP(envp);
+    return FALSE;
+#else
     if (strcmp(file, "-r") == 0)
 	file = file_name;
 
@@ -264,6 +275,7 @@ restore(char *file, char **envp)
     playit();
     /*NOTREACHED*/
     return(0);
+#endif
 }
 
 /*

@@ -31,7 +31,7 @@ static char *rip[] = {
 "                  /                  \\\n",
 "                  |                  |\n",
 "                  |                  |\n",
-"                  |   killed by a    |\n",
+"                  |      死因：      |\n",
 "                  |                  |\n",
 "                  |       1980       |\n",
 "                 *|     *  *  *      | *\n",
@@ -179,7 +179,11 @@ score(int amount, int flags, char monst)
 	    else if (prflags == 2)
 	    {
 		fflush(stdout);
+#ifdef PICO_BUILD
+		(void) md_gets(prbuf,10);
+#else
 		(void) fgets(prbuf,10,stdin);
+#endif
 		if (prbuf[0] == 'd')
 		{
 		    for (sc2 = scp; sc2 < endp - 1; sc2++)
@@ -250,8 +254,6 @@ death(char monst)
 	while (*dp)
 	    addstr(*dp++);
 	mvaddstr(17, center(killer), killer);
-	mvaddch(16, 32, ' ');
-	mvaddch(16, 33, ' ');
 	mvaddstr(14, center(whoami), whoami);
 	sprintf(prbuf, "%d G", purse);
 	move(15, center(prbuf));
@@ -262,39 +264,13 @@ death(char monst)
     move(LINES - 1, 0);
     refresh();
     score(purse, amulet ? 3 : 0, monst);
+#ifndef PICO_BUILD
+    /* on Pico, my_exit() itself waits for a key before rebooting */
     printf("[Enterキーを押してください]");
     fflush(stdout);
     (void) fgets(prbuf,10,stdin);
+#endif
     my_exit(0);
-}
-
-/*
- * str_width:
- *	Return the visual display column width of a UTF-8 string
- */
-int
-str_width(const char *s)
-{
-    int w = 0;
-    while (*s) {
-        unsigned char c = (unsigned char)*s;
-        if (c < 0x80) {
-            w++;
-            s++;
-        } else if ((c & 0xe0) == 0xc0) {
-            w += 2;
-            s += 2;
-        } else if ((c & 0xf0) == 0xe0) {
-            w += 2;
-            s += 3;
-        } else if ((c & 0xf8) == 0xf0) {
-            w += 2;
-            s += 4;
-        } else {
-            s++;
-        }
-    }
-    return w;
 }
 
 /*
@@ -304,7 +280,7 @@ str_width(const char *s)
 int
 center(char *str)
 {
-    return 28 - ((str_width(str) + 1) / 2);
+    return 28 - ((utf8_strwidth(str) + 1) / 2);
 }
 
 /*
