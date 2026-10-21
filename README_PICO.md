@@ -19,8 +19,8 @@
 - **省メモリ設計**:
   - RAM使用量: 約 61 KB / 264 KB（利用率 約23%）
   - Flash使用量: 約 235 KB / 2 MB（利用率 約11.5%）
-- **リスタート機能**:
-  - ゲームオーバー（死亡）時や終了時に、スペースキーを押すことで Pico のウォッチドッグリセットにより瞬時に新規ゲームを開始できます。
+- **ゲーム終了時の動作**:
+  - ゲームオーバー（死亡）時や終了時は「ゲーム終了」と表示して停止します。新しいゲームは Pico をリセットすると始まります。
 
 ---
 
@@ -38,14 +38,14 @@
 ## ビルド手順
 
 ```bash
-cd /Users/toyowata/dev/pico-rogue
+cd pico-rogue
 
 # ビルド用ディレクトリの作成
 mkdir -p build
 cd build
 
 # CMake の実行 (PICO_SDK_PATH を指定)
-cmake .. -DPICO_SDK_PATH=/Users/toyowata/pico/pico-sdk
+cmake .. -DPICO_SDK_PATH=<pico-sdk-path>
 
 # ビルドの実行
 make -j
@@ -75,14 +75,15 @@ make -j
 ### macOS / Linux の場合
 
 `tio`, `picocom`, `minicom`, `screen` などを使用できます。
-ゲームオーバー後の再スタートでは Pico が再起動して USB シリアルが一度切断されるため、
-自動で再接続してくれる **`tio` を推奨** します。
+ゲームが終了すると Pico は停止します（USB シリアルは切断されません）。
+もう一度遊ぶときは Pico をリセットしてください。リセット後も自動で再接続してくれる
+**`tio` がおすすめ** です。
 
 ```bash
 # デバイス名の確認 (/dev/tty.usbmodem* など)
 ls /dev/tty.usbmodem*
 
-# tio で接続する場合 (推奨。Pico 再起動後も自動で再接続されます / 終了は Ctrl-T -> Q)
+# tio で接続する場合 (Pico のリセット後も自動で再接続されます / 終了は Ctrl-T -> Q)
 brew install tio        # macOS の場合
 tio -b 115200 /dev/tty.usbmodemXXXX
 
@@ -93,9 +94,9 @@ picocom -b 115200 /dev/tty.usbmodemXXXX
 screen /dev/tty.usbmodemXXXX 115200
 ```
 
-> **注意: 再スタート後に端末の表示が崩れる場合**
+> **注意: Pico のリセット後に端末の表示が崩れる場合**
 >
-> `screen` などは、接続中のデバイスが突然消えると（Pico の再起動による USB 切断）、
+> `screen` などは、接続中のデバイスが突然消えると（リセットや書き込みによる USB 切断）、
 > 端末設定を元に戻さずに終了することがあります。その結果、`ls` などの出力が
 > 階段状にずれて表示されます（改行時に行頭へ戻らない）。
 > その場合は以下のどちらかを入力して Enter を押すと元に戻ります
@@ -107,7 +108,7 @@ screen /dev/tty.usbmodemXXXX 115200
 > reset
 > ```
 >
-> 再接続するには、Pico の再起動後にもう一度 `screen` などを起動してください。
+> 再接続するには、Pico の起動後にもう一度 `screen` などを起動してください。
 
 ### Windows の場合
 

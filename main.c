@@ -17,7 +17,6 @@
 
 #ifdef PICO_BUILD
 #include "pico/stdlib.h"
-#include "hardware/watchdog.h"
 #include "hardware/sync.h"
 #endif
 
@@ -405,12 +404,12 @@ my_exit(int st)
 {
     resetltchars();
 #ifdef PICO_BUILD
-    printf("\r\n\r\n=== ゲームオーバー ===\r\n[スペース] キーを押すと再スタートします...\r\n");
+    printf("\r\n\r\n=== ゲーム終了 ===\r\n"
+           "もう一度遊ぶには Pico をリセットしてください。\r\n");
     fflush(stdout);
-    while (getch() != ' ')
-        continue;
-    watchdog_reboot(0, 0, 0);
-    while (1) tight_loop_contents();
+    /* no OS to return to: stop here, leaving the USB serial link up */
+    while (1)
+        sleep_ms(1000);
 #else
     exit(st);
 #endif
